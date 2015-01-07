@@ -8,8 +8,8 @@ import numpy as np
 import roslib
 import rospy
 from scipy.ndimage import gaussian_filter
-from grasp_server.srv import  CalculateGraspsService
-from grasp_server.srv import CalculateGraspsServiceRequest
+from pylearn_classifier_gdl.srv import  CalculateGraspsService
+from pylearn_classifier_gdl.srv import CalculateGraspsServiceRequest
 
 from rgbd_listener import RGBDListener
 
