@@ -3,6 +3,6 @@
     <!--<include file="$(find openni_launch)/launch/openni.launch"/>-->
 
     <node name="ui_node" pkg="ui" type="main.py"/>
-    <node name="grasp_server" pkg="pylearn_classifier_gdl" type="main.py"/>
+    <node name="grasp_server" pkg="pylearn_classifier_gdl" type="ros_grasp_server.py"/>
     <!--<node name="rviz" pkg="rviz" type="rviz"/>-->
 </launch>
