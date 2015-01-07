@@ -1,3 +1,2 @@
-- git: {local-name: staubli_barretthand_description, uri: 'git://github.com/CURG/staubli_barretthand_description.git'}
 - git: {local-name: pylearn_classifier_gdl, uri: 'git://github.com/CURG/pylearn_classifier_gdl.git'}
-
+- git: {local-name: barrett_model, uri: 'git@github.com:CURG/barrett_model.git'}
