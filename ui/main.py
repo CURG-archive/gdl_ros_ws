@@ -8,6 +8,8 @@ import numpy as np
 import roslib
 import rospy
 from scipy.ndimage import gaussian_filter
+from grasp_server.srv import  CalculateGraspsService
+from grasp_server.srv import CalculateGraspsServiceRequest
 
 from rgbd_listener import RGBDListener
 
@@ -26,7 +28,7 @@ class GUI():
         self.rgbd_listener = RGBDListener()
 
         try:
-            rospy.wait_for_service('grasp_service', timeout=5)
+            rospy.wait_for_service('calculate_grasps_service', timeout=5)
         except Exception, e:
             rospy.logerr("Service call failed: %s  UI will work fine, but Grasp Server is not running "%e)
 
@@ -75,19 +77,22 @@ class GUI():
 
     def get_grasps_button_cb(self, *args):
 
-        rospy.wait_for_service('grasp_service')
+        rospy.wait_for_service('calculate_grasps_service')
         try:
             calculate_grasps = rospy.ServiceProxy('calculate_grasps_service', CalculateGraspsService)
-            self.grasps = calculate_grasps(self.image)
+
+            req = CalculateGraspsServiceRequest(self.image.flatten(), self.mask.flatten())
+
+            self.grasps = calculate_grasps(req)
         except rospy.ServiceException, e:
-            rospy.loginfo("Service call failed: %s"%e)
+            rospy.loginfo("Service call failed: %s" % e)
         rospy.loginfo(self.grasps)
 
     #this is called from within TK.mainloop()
     #it updates the image to be the most recently captured from the kinect.
     def update_image(self):
         #print("updating image")
-        self.set_capture_image(self.rgbd_listener.rgbd_image[:, :, 0:3])
+        self.set_capture_image(self.rgbd_listener.rgbd_image)
         self.draw()
         if not self._still_captured:
             self.root.after(1000, self.update_image)
@@ -96,7 +101,7 @@ class GUI():
         self.image = img
         plt.subplot(211)
         plt.title("capture")
-        self.plt_image = plt.imshow(img)
+        self.plt_image = plt.imshow(img[:, :, 0:3])
 
     def set_mask_image(self, img):
         self.mask = img

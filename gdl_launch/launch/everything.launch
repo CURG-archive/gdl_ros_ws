@@ -1,4 +1,8 @@
 <launch>
-    <include file="$(find openni_launch)/launch/openni.launch"/>
+
+    <!--<include file="$(find openni_launch)/launch/openni.launch"/>-->
+
     <node name="ui_node" pkg="ui" type="main.py"/>
+    <node name="grasp_server" pkg="grasp_server" type="main.py"/>
+    <!--<node name="rviz" pkg="rviz" type="rviz"/>-->
 </launch>

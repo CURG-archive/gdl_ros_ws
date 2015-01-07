@@ -1,4 +1,4 @@
-std_msgs/Float64MultiArray rgbd
-std_msgs/Float64MultiArray mask
+float32[] rgbd
+float32[] mask
 ---
 
