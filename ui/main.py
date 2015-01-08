@@ -10,6 +10,7 @@ import rospy
 from scipy.ndimage import gaussian_filter
 from pylearn_classifier_gdl.srv import  CalculateGraspsService
 from pylearn_classifier_gdl.srv import CalculateGraspsServiceRequest
+from collections import namedtuple
 
 from rgbd_listener import RGBDListener
 
@@ -20,12 +21,23 @@ else:
     import tkinter as Tk
 
 
+# grasp named tuple with score, dof_values, joint_values, pose
+# pose named tuple
+grasp = namedtuple("grasp", "score dof_values joint_values pose")
+pose = namedtuple("pose", "trans_x trans_y trans_z rot_x rot_y rot_z rot_w")
+
 class GUI():
     def __init__(self):
 
         #show live stream until capture button is pressed
         self._still_captured = False
         self.rgbd_listener = RGBDListener()
+
+        #grasp list
+        self.grasp_list = []
+        #current grasp id
+        self.current_grasp = 0
+
 
         try:
             rospy.wait_for_service('calculate_grasps_service', timeout=60)
@@ -59,6 +71,27 @@ class GUI():
         button_capture.pack()
         button_run_grasp_server.pack()
 
+
+        # Grasp navigation
+
+        # Current Grasp
+
+        self.current_grasp_label_text = Tk.StringVar()
+        self.current_grasp_label_text.set("0 / 0")
+        current_grasp_label = Tk.Label(master=self.root, textvariable=self.current_grasp_label_text)
+        #next button
+        self.button_next_grasp = Tk.Button(master=self.root, text="Next Grasp", command=self.goto_next_grasp)
+        #prev button
+        self.button_prev_grasp = Tk.Button(master=self.root, text="Prev Grasp", command=self.goto_prev_grasp)
+
+        self.button_next_grasp.config(state="disabled")
+        self.button_prev_grasp.config(state="disabled")
+
+        current_grasp_label.pack(side=Tk.RIGHT)
+        self.button_next_grasp.pack(side=Tk.RIGHT)
+        self.button_prev_grasp.pack(side=Tk.RIGHT)
+
+
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
         self.rgbd_listener.listen()
@@ -73,6 +106,28 @@ class GUI():
     def capture_button_cb(self, *args):
         rospy.loginfo("capture press...")
         self._still_captured = True
+
+    def goto_next_grasp(self, *args):
+        rospy.loginfo('next button pressed...')
+        self.current_grasp += 1
+        if self.current_grasp > len(self.grasp_list):
+            self.current_grasp = 1
+
+        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
+
+        # Publish grasp info on rostopics "gdl_joint_states" and "gdl_robot_pose"
+        grasp = self.grasp_list[self.current_grasp-1]
+
+    def goto_prev_grasp(self, *args):
+        rospy.loginfo('prev button pressed...')
+        self.current_grasp -= 1
+        if self.current_grasp == 0:
+            self.current_grasp = 1
+
+        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
+
+        # Publish grasp info on rostopics "gdl_joint_states" and "gdl_robot_pose"
+        grasp = self.grasp_list[self.current_grasp-1]
 
 
     def get_grasps_button_cb(self, *args):
