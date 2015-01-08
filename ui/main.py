@@ -39,10 +39,10 @@ class GUI():
         self.current_grasp = 0
 
 
-        try:
-            rospy.wait_for_service('calculate_grasps_service', timeout=60)
-        except Exception, e:
-            rospy.logerr("Service call failed: %s  UI will work fine, but Grasp Server is not running "%e)
+        # try:
+        #     rospy.wait_for_service('calculate_grasps_service', timeout=60)
+        # except Exception, e:
+        #     rospy.logerr("Service call failed: %s  UI will work fine, but Grasp Server is not running "%e)
 
         self.root = Tk.Tk()
         self.root.wm_title("Image Capture GUI")
@@ -65,11 +65,12 @@ class GUI():
 
         button_capture = Tk.Button(master=self.root, text='Capture', command=self.capture_button_cb)
         button_quit = Tk.Button(master=self.root, text='Quit', command=self.quit_button_cb)
-        button_run_grasp_server = Tk.Button(master=self.root, text='get grasps', command=self.get_grasps_button_cb)
+        self.button_run_grasp_server = Tk.Button(master=self.root, text='get grasps', command=self.get_grasps_button_cb)
+        self.button_run_grasp_server.config(state="disabled")
 
         button_quit.pack(side=Tk.LEFT)
         button_capture.pack()
-        button_run_grasp_server.pack()
+        self.button_run_grasp_server.pack()
 
 
         # Grasp navigation
@@ -106,6 +107,7 @@ class GUI():
     def capture_button_cb(self, *args):
         rospy.loginfo("capture press...")
         self._still_captured = True
+        self.button_run_grasp_server.config(state="active")
 
     def goto_next_grasp(self, *args):
         rospy.loginfo('next button pressed...')
@@ -142,6 +144,9 @@ class GUI():
         except rospy.ServiceException, e:
             rospy.loginfo("Service call failed: %s" % e)
         rospy.loginfo(self.grasps)
+
+        self.button_next_grasp.config(state="active")
+        self.button_prev_grasp.config(state="active")
 
     #this is called from within TK.mainloop()
     #it updates the image to be the most recently captured from the kinect.
