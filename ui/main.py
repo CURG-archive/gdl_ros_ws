@@ -13,6 +13,7 @@ from pylearn_classifier_gdl.srv import CalculateGraspsServiceRequest
 from collections import namedtuple
 
 from rgbd_listener import RGBDListener
+from grasp_publisher import GraspPublisher
 
 
 if sys.version_info[0] < 3:
@@ -21,8 +22,6 @@ else:
     import tkinter as Tk
 
 
-# grasp named tuple with score, dof_values, joint_values, pose
-# pose named tuple
 grasp = namedtuple("grasp", "score dof_values joint_values pose")
 pose = namedtuple("pose", "trans_x trans_y trans_z rot_x rot_y rot_z rot_w")
 
@@ -32,6 +31,8 @@ class GUI():
         #show live stream until capture button is pressed
         self._still_captured = False
         self.rgbd_listener = RGBDListener()
+
+        self.grasp_publisher = GraspPublisher()
 
         #grasp list
         self.grasp_list = []
@@ -113,24 +114,26 @@ class GUI():
         rospy.loginfo('next button pressed...')
         self.current_grasp += 1
         if self.current_grasp > len(self.grasp_list):
-            self.current_grasp = 1
+            self.current_grasp = 0
 
         self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
 
-        # Publish grasp info on rostopics "gdl_joint_states" and "gdl_robot_pose"
-        grasp = self.grasp_list[self.current_grasp-1]
+
+        grasp = self.grasp_list[self.current_grasp]
+
+        self.grasp_publisher.publish_grasp(grasp)
 
     def goto_prev_grasp(self, *args):
         rospy.loginfo('prev button pressed...')
         self.current_grasp -= 1
-        if self.current_grasp == 0:
-            self.current_grasp = 1
+        if self.current_grasp == -1:
+            self.current_grasp = len(self.current_grasp) -1
 
         self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
 
-        # Publish grasp info on rostopics "gdl_joint_states" and "gdl_robot_pose"
-        grasp = self.grasp_list[self.current_grasp-1]
+        grasp = self.grasp_list[self.current_grasp]
 
+        self.grasp_publisher.publish_grasp(grasp)
 
     def get_grasps_button_cb(self, *args):
 
