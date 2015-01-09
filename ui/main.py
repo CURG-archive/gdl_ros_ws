@@ -126,8 +126,8 @@ class GUI():
     def goto_prev_grasp(self, *args):
         rospy.loginfo('prev button pressed...')
         self.current_grasp -= 1
-        if self.current_grasp == -1:
-            self.current_grasp = len(self.current_grasp)
+        if self.current_grasp == 0:
+            self.current_grasp = len(self.grasp_list)
 
         self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
 
