@@ -8,5 +8,5 @@ class GraspPublisher():
 
     def publish_grasp(self,grasp):
         # Publish grasp info on rostopics "gdl_joint_states" and "gdl_robot_pose"
+
         raise NotImplementedError
-    
