@@ -118,7 +118,7 @@ class GUI():
 
         self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
 
-        grasp = self.grasp_list[self.current_grasp]
+        grasp = self.grasp_list[self.current_grasp - 1]
         self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
 
         self.grasp_publisher.publish_grasp(grasp)
@@ -127,11 +127,11 @@ class GUI():
         rospy.loginfo('prev button pressed...')
         self.current_grasp -= 1
         if self.current_grasp == -1:
-            self.current_grasp = len(self.current_grasp) -1
+            self.current_grasp = len(self.current_grasp)
 
         self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
 
-        grasp = self.grasp_list[self.current_grasp]
+        grasp = self.grasp_list[self.current_grasp - 1]
         self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
 
         self.grasp_publisher.publish_grasp(grasp)
@@ -153,6 +153,16 @@ class GUI():
             self.button_next_grasp.config(state="active")
             self.button_prev_grasp.config(state="active")
             self.current_grasp = 1
+
+            grasp = self.grasp_list[0]
+            self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
+            self.grasp_publisher.publish_grasp(grasp)
+
+        else:
+            self.button_next_grasp.config(state="disabled")
+            self.button_prev_grasp.config(state="disabled")
+            self.current_grasp = 0
+
 
         self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
 
