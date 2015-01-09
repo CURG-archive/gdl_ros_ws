@@ -143,10 +143,10 @@ class GUI():
 
             req = CalculateGraspsServiceRequest(self.image.flatten(), self.mask.flatten())
 
-            self.grasps = calculate_grasps(req)
+            self.grasp_list = calculate_grasps(req).grasps
         except rospy.ServiceException, e:
             rospy.loginfo("Service call failed: %s" % e)
-        rospy.loginfo(self.grasps)
+        rospy.loginfo(self.grasp_list)
 
         self.button_next_grasp.config(state="active")
         self.button_prev_grasp.config(state="active")
