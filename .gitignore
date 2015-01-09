@@ -1,2 +1,3 @@
 pylearn_classifier_gdl/
 barrett_model/
+*.pyc
