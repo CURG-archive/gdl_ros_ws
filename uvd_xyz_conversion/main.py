@@ -2,6 +2,7 @@
 import rospy
 import image_geometry
 from sensor_msgs.msg import CameraInfo
+import math
 
 from uvd_xyz_conversion.srv import UVDTOXYZ
 
@@ -27,8 +28,10 @@ class UVD_XYZ_Converter():
     #convert it to x,y,z
     def conversion_service_cb(self, msg):
         u, v, d = msg.u, msg.v, msg.d
+
         x, y, z = self.pinhole_model.projectPixelTo3dRay((u, v))
-        return x, y, z
+        h = math.hypot(x,z)
+        return x*h, y*h, z*h
 
 if __name__ == "__main__":
 
