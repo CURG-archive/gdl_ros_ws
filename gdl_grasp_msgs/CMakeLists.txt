@@ -9,6 +9,7 @@ find_package(catkin REQUIRED
   rospy
   std_msgs
   geometry_msgs
+  sensor_msgs
   message_generation)
 
 ## System dependencies are found with CMake's conventions
@@ -69,6 +70,7 @@ find_package(catkin REQUIRED
    DEPENDENCIES
    std_msgs
    geometry_msgs
+   sensor_msgs
  )
 
 ###################################
