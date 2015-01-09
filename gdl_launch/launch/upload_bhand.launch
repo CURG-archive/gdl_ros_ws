@@ -1,0 +1,5 @@
+<launch>  
+  <arg name="prefix" default="/" />
+  
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find barrett_model)/robots/hand.urdf.xacro' prefix:='$(arg prefix)'" />
+</launch>

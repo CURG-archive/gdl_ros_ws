@@ -28,7 +28,7 @@ class GUI():
         self.rgbd_listener = RGBDListener()
 
         try:
-            rospy.wait_for_service('calculate_grasps_service', timeout=5)
+            rospy.wait_for_service('calculate_grasps_service', timeout=60)
         except Exception, e:
             rospy.logerr("Service call failed: %s  UI will work fine, but Grasp Server is not running "%e)
 

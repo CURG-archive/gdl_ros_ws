@@ -5,7 +5,13 @@
     <node name="ui_node" pkg="ui" type="main.py"/>
 
 
+
     <!--<node name="grasp_server" pkg="pylearn_classifier_gdl" type="ros_grasp_server.py"/>-->
     <!--<node name="rviz" pkg="rviz" type="rviz"/>-->
+
+    <node name="grasp_server" pkg="pylearn_classifier_gdl" type="ros_grasp_server.py"/>
+    <node name="uvd_to_xyz_service_node" pkg="uvd_xyz_conversion" type="main.py"/>
+
+    <include file="$(find gdl_launch)/launch/gdl_bhand.launch"/>
 
 </launch>
