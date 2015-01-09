@@ -10,8 +10,10 @@ import rospy
 from scipy.ndimage import gaussian_filter
 from pylearn_classifier_gdl.srv import  CalculateGraspsService
 from pylearn_classifier_gdl.srv import CalculateGraspsServiceRequest
+from collections import namedtuple
 
 from rgbd_listener import RGBDListener
+from grasp_publisher import GraspPublisher
 
 
 if sys.version_info[0] < 3:
@@ -20,6 +22,9 @@ else:
     import tkinter as Tk
 
 
+grasp = namedtuple("grasp", "score dof_values joint_values pose")
+pose = namedtuple("pose", "trans_x trans_y trans_z rot_x rot_y rot_z rot_w")
+
 class GUI():
     def __init__(self):
 
@@ -27,10 +32,18 @@ class GUI():
         self._still_captured = False
         self.rgbd_listener = RGBDListener()
 
-        try:
-            rospy.wait_for_service('calculate_grasps_service', timeout=60)
-        except Exception, e:
-            rospy.logerr("Service call failed: %s  UI will work fine, but Grasp Server is not running "%e)
+        self.grasp_publisher = GraspPublisher()
+
+        #grasp list
+        self.grasp_list = []
+        #current grasp id
+        self.current_grasp = 0
+
+
+        # try:
+        #     rospy.wait_for_service('calculate_grasps_service', timeout=60)
+        # except Exception, e:
+        #     rospy.logerr("Service call failed: %s  UI will work fine, but Grasp Server is not running "%e)
 
         self.root = Tk.Tk()
         self.root.wm_title("Image Capture GUI")
@@ -53,11 +66,33 @@ class GUI():
 
         button_capture = Tk.Button(master=self.root, text='Capture', command=self.capture_button_cb)
         button_quit = Tk.Button(master=self.root, text='Quit', command=self.quit_button_cb)
-        button_run_grasp_server = Tk.Button(master=self.root, text='get grasps', command=self.get_grasps_button_cb)
+        self.button_run_grasp_server = Tk.Button(master=self.root, text='get grasps', command=self.get_grasps_button_cb)
+        self.button_run_grasp_server.config(state="disabled")
 
         button_quit.pack(side=Tk.LEFT)
         button_capture.pack()
-        button_run_grasp_server.pack()
+        self.button_run_grasp_server.pack()
+
+
+        # Grasp navigation
+
+        # Current Grasp
+
+        self.current_grasp_label_text = Tk.StringVar()
+        self.current_grasp_label_text.set("0 / 0")
+        current_grasp_label = Tk.Label(master=self.root, textvariable=self.current_grasp_label_text)
+        #next button
+        self.button_next_grasp = Tk.Button(master=self.root, text="Next Grasp", command=self.goto_next_grasp)
+        #prev button
+        self.button_prev_grasp = Tk.Button(master=self.root, text="Prev Grasp", command=self.goto_prev_grasp)
+
+        self.button_next_grasp.config(state="disabled")
+        self.button_prev_grasp.config(state="disabled")
+
+        current_grasp_label.pack(side=Tk.RIGHT)
+        self.button_next_grasp.pack(side=Tk.RIGHT)
+        self.button_prev_grasp.pack(side=Tk.RIGHT)
+
 
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
@@ -73,7 +108,32 @@ class GUI():
     def capture_button_cb(self, *args):
         rospy.loginfo("capture press...")
         self._still_captured = True
+        self.button_run_grasp_server.config(state="active")
 
+    def goto_next_grasp(self, *args):
+        rospy.loginfo('next button pressed...')
+        self.current_grasp += 1
+        if self.current_grasp > len(self.grasp_list):
+            self.current_grasp = 0
+
+        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
+
+
+        grasp = self.grasp_list[self.current_grasp]
+
+        self.grasp_publisher.publish_grasp(grasp)
+
+    def goto_prev_grasp(self, *args):
+        rospy.loginfo('prev button pressed...')
+        self.current_grasp -= 1
+        if self.current_grasp == -1:
+            self.current_grasp = len(self.current_grasp) -1
+
+        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
+
+        grasp = self.grasp_list[self.current_grasp]
+
+        self.grasp_publisher.publish_grasp(grasp)
 
     def get_grasps_button_cb(self, *args):
 
@@ -87,6 +147,9 @@ class GUI():
         except rospy.ServiceException, e:
             rospy.loginfo("Service call failed: %s" % e)
         rospy.loginfo(self.grasps)
+
+        self.button_next_grasp.config(state="active")
+        self.button_prev_grasp.config(state="active")
 
     #this is called from within TK.mainloop()
     #it updates the image to be the most recently captured from the kinect.
