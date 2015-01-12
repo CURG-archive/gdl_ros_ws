@@ -21,9 +21,9 @@ class GraspPublisher():
         tf.rotation = pose.orientation
 
         translation = Vector3()
-        translation.x = pose.position.x
+        translation.x = pose.position.z
         translation.y = pose.position.y
-        translation.z = pose.position.z
+        translation.z = pose.position.x
         tf.translation = translation
 
         self.gdl_hand_pose_pub.publish(tf)

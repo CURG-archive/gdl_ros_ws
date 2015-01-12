@@ -1,2 +1,2 @@
 - git: {local-name: pylearn_classifier_gdl, uri: 'git@github.com:CURG/pylearn_classifier_gdl.git'}
-- git: {local-name: barrett_model, uri: 'git@github.com:CURG/barrett_model.git'}
+- git: {local-name: barrett_model, uri: 'git@github.com:CURG/barrett_model.git',version: gdl}
