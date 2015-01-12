@@ -86,16 +86,16 @@ class GUI():
         current_grasp_energy = Tk.Label(master=sideFrame, textvariable=self.current_grasp_energy_text)
         current_grasp_xyz = Tk.Label(master=sideFrame, textvariable=self.current_grasp_xyz_text)
         #next button
-        self.button_next_grasp = Tk.Button(master=sideFrame, text="Next Grasp", command=self.goto_next_grasp)
+        self.button_next_grasp = Tk.Button(master=sideFrame, text="Next Grasp", command=self.goto_next_grasp_cb)
         #prev button
-        self.button_prev_grasp = Tk.Button(master=sideFrame, text="Prev Grasp", command=self.goto_prev_grasp)
+        self.button_prev_grasp = Tk.Button(master=sideFrame, text="Prev Grasp", command=self.goto_prev_grasp_cb)
 
         self.button_next_grasp.config(state="disabled")
         self.button_prev_grasp.config(state="disabled")
 
         current_grasp_label.pack(side=Tk.TOP)
         current_grasp_energy.pack(side=Tk.TOP)
-        current_grasp_xyz.pack(side=Tk.CENTER)
+        current_grasp_xyz.pack(side=Tk.BOTTOM)
         self.button_next_grasp.pack(side=Tk.BOTTOM)
         self.button_prev_grasp.pack(side=Tk.BOTTOM)
 
@@ -116,33 +116,31 @@ class GUI():
         self._still_captured = True
         self.button_run_grasp_server.config(state="active")
 
-    def goto_next_grasp(self, *args):
+    def goto_next_grasp_cb(self, *args):
         rospy.loginfo('next button pressed...')
         self.current_grasp += 1
         if self.current_grasp > len(self.grasp_list):
             self.current_grasp = 1
 
-        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
-
         grasp = self.grasp_list[self.current_grasp - 1]
+        self.grasp_publisher.publish_grasp(grasp)
+
+        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
         self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
         self.current_grasp_xyz_text.set("x: %s, y: %s, z:%s" % (grasp.pose.position.x, grasp.pose.position.y, grasp.pose.position.z))
 
-        self.grasp_publisher.publish_grasp(grasp)
-
-    def goto_prev_grasp(self, *args):
+    def goto_prev_grasp_cb(self, *args):
         rospy.loginfo('prev button pressed...')
         self.current_grasp -= 1
         if self.current_grasp == 0:
             self.current_grasp = len(self.grasp_list)
 
-        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
-
         grasp = self.grasp_list[self.current_grasp - 1]
+        self.grasp_publisher.publish_grasp(grasp)
+
+        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
         self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
         self.current_grasp_xyz_text.set("x: %s, y: %s, z:%s" % (grasp.pose.position.x, grasp.pose.position.y, grasp.pose.position.z))
-
-        self.grasp_publisher.publish_grasp(grasp)
 
     def get_grasps_button_cb(self, *args):
 
