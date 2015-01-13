@@ -186,7 +186,7 @@ class GUI():
         self.image = img
         plt.subplot(211)
         plt.title("capture")
-        self.plt_image = plt.imshow(img[:, :, 0:3])
+        self.plt_image = plt.imshow(img[:, :, 0:3][:, :, ::-1])
 
     def set_mask_image(self, img):
         self.mask = img

@@ -7,7 +7,7 @@ class RGBDListener():
 
     def __init__(self,
                  depth_topic="/camera/depth/image_raw",
-                 rgb_topic="/camera/rgb/image_raw"):
+                 rgb_topic="/camera/rgb/image_color"):
 
         self.depth_topic = depth_topic
         self.rgb_topic = rgb_topic
@@ -20,12 +20,12 @@ class RGBDListener():
 
     def depth_image_callback(self, data):
         depth_image_np = self.image2numpy(data)
-        self.rgbd_image[:, :, 3] = depth_image_np
+        self.rgbd_image[:, :, 3] = depth_image_np[:, :, 0]
 
     def rgb_image_callback(self, data):
         self.data = data
         rgbd_image_np = self.image2numpy(data)
-        self.rgbd_image[:, :, 0:3] = rgbd_image_np
+        self.rgbd_image[:, :, 0:3] = (rgbd_image_np / 255.0)
 
 
     #this method from:
@@ -40,9 +40,9 @@ class RGBDListener():
         elif image.encoding == '32FC1':
             return np.fromstring(image.data, dtype=np.float32).reshape(image.height, image.width)
         elif image.encoding == '16UC1':
-            return self.bridge.imgmsg_to_cv(image, "16UC1")
+            return self.bridge.imgmsg_to_cv2(image, desired_encoding="16UC1")
         elif image.encoding == 'bayer_grbg8':
-            return self.bridge.imgmsg_to_cv(image, "rgb8")
+            return self.bridge.imgmsg_to_cv2(image, desired_encoding="32FC1")
         else:
             raise Exception
 
