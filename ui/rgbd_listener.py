@@ -21,6 +21,7 @@ class RGBDListener():
     def depth_image_callback(self, data):
         depth_image_np = self.image2numpy(data)
         self.rgbd_image[:, :, 3] = depth_image_np[:, :, 0]
+        self.rgbd_image[:, :, 3] /= 1000.0
 
     def rgb_image_callback(self, data):
         self.data = data
