@@ -22,8 +22,8 @@ class GraspPublisher():
 
         translation = Vector3()
         translation.x = pose.position.z
-        translation.y = pose.position.y
-        translation.z = pose.position.x
+        translation.y = -pose.position.x
+        translation.z = -pose.position.y
         tf.translation = translation
 
         self.gdl_hand_pose_pub.publish(tf)

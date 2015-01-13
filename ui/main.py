@@ -203,6 +203,8 @@ class GUI():
         rospy.loginfo('button=%d, x=%d, y=%d, xdata=%f, ydata=%f'%(
             event.button, event.x, event.y, event.xdata, event.ydata))
 
+        rospy.loginfo(self.image[event.ydata, event.xdata, 3])
+
         x_pos = event.xdata
         y_pos = event.ydata
 
