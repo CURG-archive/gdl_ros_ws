@@ -36,7 +36,7 @@ class RGBDListener():
 
     def getSlic(self):
         self.slic = slic(self.depth_image,
-                    n_segments=20,
+                    n_segments=50,
                     compactness=.001,
                     sigma=1,
                     multichannel=False)
