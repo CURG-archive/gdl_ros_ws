@@ -3,6 +3,9 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
+# Segmentation
+from skimage.segmentation import slic
+
 class RGBDListener():
 
     def __init__(self,
@@ -12,6 +15,7 @@ class RGBDListener():
         self.depth_topic = depth_topic
         self.rgb_topic = rgb_topic
         self.data = None
+        self.slic = None
 
         #this is the current image
         self.rgbd_image = np.zeros((480, 640, 4))
@@ -20,14 +24,26 @@ class RGBDListener():
 
     def depth_image_callback(self, data):
         depth_image_np = self.image2numpy(data)
-        self.rgbd_image[:, :, 3] = depth_image_np[:, :, 0]
+        self.depth_image = depth_image_np[:, :, 0]
+        self.rgbd_image[:, :, 3] = self.depth_image
         self.rgbd_image[:, :, 3] /= 1000.0
+
 
     def rgb_image_callback(self, data):
         self.data = data
         rgbd_image_np = self.image2numpy(data)
         self.rgbd_image[:, :, 0:3] = (rgbd_image_np / 255.0)
 
+    def getSlic(self):
+        self.slic = slic(self.depth_image,
+                    n_segments=20,
+                    compactness=.001,
+                    sigma=1,
+                    multichannel=False)
+        return self.slic
+
+    def resetSlic(self):
+        self.slic = None
 
     #this method from:
     #https://github.com/rll/sushichallenge/blob/master/python/brett2/ros_utils.py

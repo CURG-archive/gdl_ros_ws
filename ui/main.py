@@ -14,6 +14,7 @@ from pylearn_classifier_gdl.srv import CalculateGraspsServiceRequest
 from rgbd_listener import RGBDListener
 from grasp_publisher import GraspPublisher
 
+from skimage.segmentation import mark_boundaries
 
 if sys.version_info[0] < 3:
     import Tkinter as Tk
@@ -51,9 +52,12 @@ class GUI():
         self.canvas = FigureCanvasTkAgg(fig, master=self.root)
         pkg_dir = roslib.packages.get_pkg_dir('ui')
         self.image = plt.imread(pkg_dir + '/san_jacinto.jpg')
+        self.depth_image = np.zeros((480, 640))
         self.mask = np.zeros((480, 640))
 
         self.set_capture_image(self.image)
+        self.set_depth_image(self.depth_image)
+
         self.set_mask_image(self.mask)
 
         self.draw()
@@ -61,12 +65,14 @@ class GUI():
         fig.canvas.mpl_connect('button_press_event', self.on_click)
 
         button_capture = Tk.Button(master=self.root, text='Capture', command=self.capture_button_cb)
+        button_reset_segmentation = Tk.Button(master=self.root, text='Reset Segmentation', command=self.reset_seg_button_cb)
         button_quit = Tk.Button(master=self.root, text='Quit', command=self.quit_button_cb)
         self.button_run_grasp_server = Tk.Button(master=self.root, text='get grasps', command=self.get_grasps_button_cb)
         self.button_run_grasp_server.config(state="disabled")
 
         button_quit.pack(side=Tk.LEFT)
         button_capture.pack()
+        button_reset_segmentation.pack()
         self.button_run_grasp_server.pack()
 
 
@@ -115,6 +121,10 @@ class GUI():
         rospy.loginfo("capture press...")
         self._still_captured = True
         self.button_run_grasp_server.config(state="active")
+
+    def reset_seg_button_cb(self, *args):
+        rospy.loginfo("Resetting segmentation...")
+        self.rgbd_listener.resetSlic()
 
     def goto_next_grasp_cb(self, *args):
         rospy.loginfo('next button pressed...')
@@ -177,20 +187,43 @@ class GUI():
     #it updates the image to be the most recently captured from the kinect.
     def update_image(self):
         #print("updating image")
-        self.set_capture_image(self.rgbd_listener.rgbd_image)
+        self.set_capture_image(self.rgbd_listener.rgbd_image,
+                               segments_slic=self.rgbd_listener.slic)
+        self.set_depth_image(self.rgbd_listener.rgbd_image[:, :, 3],
+                               segments_slic=self.rgbd_listener.slic)
         self.draw()
         if not self._still_captured:
             self.root.after(1000, self.update_image)
 
-    def set_capture_image(self, img):
+    def set_capture_image(self, img, segments_slic=None):
         self.image = img
-        plt.subplot(211)
+        plt.subplot(221)
         plt.title("capture")
-        self.plt_image = plt.imshow(img[:, :, 0:3][:, :, ::-1])
+
+        convertedImg = img[:, :, 0:3][:, :, ::-1]
+        # bgr8 to rgb8 and throw out depth
+
+        if segments_slic is None:
+            self.plt_image = plt.imshow(convertedImg)
+        else:
+            img_with_boundaries = mark_boundaries(convertedImg, segments_slic)
+            self.plt_image = plt.imshow(img_with_boundaries)
+
+    def set_depth_image(self, img, segments_slic=None):
+        self.depth_image = img
+        plt.subplot(223)
+        plt.title("depth")
+
+        if segments_slic is None:
+            self.depth_plt_image = plt.imshow(self.depth_image)
+        else:
+            img_with_boundaries = mark_boundaries(self.depth_image, segments_slic)
+            self.depth_plt_image = plt.imshow(img_with_boundaries)
+
 
     def set_mask_image(self, img):
         self.mask = img
-        plt.subplot(212)
+        plt.subplot(224)
         plt.title("mask")
         self.plt_mask_image = plt.imshow(img)
 
@@ -205,12 +238,17 @@ class GUI():
 
         rospy.loginfo(self.image[event.ydata, event.xdata, 3])
 
-        x_pos = event.xdata
-        y_pos = event.ydata
+        x_pos = event.ydata
+        y_pos = event.xdata
 
-        self.mask = np.zeros((480, 640))
-        self.mask[y_pos, x_pos] = 100
-        self.mask = gaussian_filter(self.mask, sigma=10)
+
+        slic = self.rgbd_listener.getSlic()
+        rospy.loginfo("seg # =%s" % slic[x_pos, y_pos])
+        self.mask = np.in1d(slic.ravel(), [slic[x_pos, y_pos]]).reshape(slic.shape)
+
+        #self.mask = np.zeros((480, 640))
+        #self.mask[y_pos, x_pos] = 100
+        #self.mask = gaussian_filter(self.mask, sigma=10)
 
         self.set_mask_image(self.mask)
         self.draw()
