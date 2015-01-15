@@ -1,14 +1,29 @@
 <launch>
 
-    <include file="$(find openni_launch)/launch/openni.launch"/>
+    <arg name="use_trajectory_planning" default="False" />
 
-    <node name="ui_node" pkg="ui" type="main.py"/>
+    <!--Do we want to move the actual robot-->
+    <arg name="use_robot_hw" default="False" />
+    <arg name="use_vision_hw" default="True" />
 
-    <!--<node name="rviz" pkg="rviz" type="rviz"/>-->
+    <group if="$(arg use_trajectory_planning)" >
+        <!--Spin up the nodes that communicate to the actual robot-->
+        <include file="$(find gdl_launch)/launch/hardware.launch">
+            <arg name="use_robot_hw" value="$(arg use_robot_hw)" />
+        </include>
 
-    <node name="uvd_to_xyz_service_node" pkg="uvd_xyz_conversion" type="main.py"/>
-    <node name="position_tf_server" pkg="barrett_model" type="position_tf_server.py"/>
+        <!--Spin up nodes related to planning -->
+        <include file="$(find gdl_launch)/launch/planners.launch">
+            <arg name="use_robot_hw" value="$(arg use_robot_hw)" />
+        </include>
+    </group>
 
-    <include file="$(find gdl_launch)/launch/gdl_bhand.launch"/>
+    <!--Spin up the nodes related to vision or mock vision-->
+    <include file="$(find gdl_launch)/launch/vision.launch" >
+        <arg name="use_vision_hw" value="$(arg use_vision_hw)" />
+    </include>
+
+    <!--Spin up the nodes related to visualization and user input-->
+    <include file="$(find gdl_launch)/launch/ui.launch" > </include>
 
 </launch>
