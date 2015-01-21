@@ -1,17 +1,29 @@
 <launch>
 
-    <!--<include file="$(find openni_launch)/launch/openni.launch"/>-->
+    <arg name="use_trajectory_planning" default="False" />
 
-    <node name="ui_node" pkg="ui" type="main.py"/>
+    <!--Do we want to move the actual robot-->
+    <arg name="use_robot_hw" default="False" />
+    <arg name="use_vision_hw" default="True" />
 
+    <group if="$(arg use_trajectory_planning)" >
+        <!--Spin up the nodes that communicate to the actual robot-->
+        <include file="$(find gdl_launch)/launch/hardware.launch">
+            <arg name="use_robot_hw" value="$(arg use_robot_hw)" />
+        </include>
 
+        <!--Spin up nodes related to planning -->
+        <include file="$(find gdl_launch)/launch/planners.launch">
+            <arg name="use_robot_hw" value="$(arg use_robot_hw)" />
+        </include>
+    </group>
 
-    <!--<node name="grasp_server" pkg="pylearn_classifier_gdl" type="ros_grasp_server.py"/>-->
-    <!--<node name="rviz" pkg="rviz" type="rviz"/>-->
+    <!--Spin up the nodes related to vision or mock vision-->
+    <include file="$(find gdl_launch)/launch/vision.launch" >
+        <arg name="use_vision_hw" value="$(arg use_vision_hw)" />
+    </include>
 
-    <node name="grasp_server" pkg="pylearn_classifier_gdl" type="ros_grasp_server.py"/>
-    <node name="uvd_to_xyz_service_node" pkg="uvd_xyz_conversion" type="main.py"/>
-
-    <include file="$(find gdl_launch)/launch/gdl_bhand.launch"/>
+    <!--Spin up the nodes related to visualization and user input-->
+    <include file="$(find gdl_launch)/launch/ui.launch" > </include>
 
 </launch>

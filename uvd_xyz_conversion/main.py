@@ -4,38 +4,42 @@ import image_geometry
 from sensor_msgs.msg import CameraInfo
 import math
 
-from uvd_xyz_conversion.srv import UVDTOXYZ
+from uvd_xyz_conversion.srv import UVDTOXYZ, XYZTOUV
 
-class UVD_XYZ_Converter():
+class UVD_XYZ_Converter_Service():
 
     def __init__(self, camera_param_topic='/camera/rgb/camera_info'):
         self.camera_param_topic = camera_param_topic
 
-        rospy.Subscriber(self.camera_param_topic, CameraInfo, self.camera_info_cb)
-        self.camera_info = None
-
+        camera_info = rospy.wait_for_message(self.camera_param_topic, CameraInfo)
         self.pinhole_model = image_geometry.PinholeCameraModel()
+        self.pinhole_model.fromCameraInfo(camera_info)
 
-        self.conversion_service = rospy.Service('uvd_to_xyz', UVDTOXYZ, self.conversion_service_cb)
+        self.uvd_xyz_converter = UVD_XYZ_Converter(self.pinhole_model)
 
-    #get the camera info from the kinect
-    def camera_info_cb(self, msg):
-        if not self.camera_info:
-            self.camera_info = msg
-            self.pinhole_model.fromCameraInfo(self.camera_info)
+        self.conversion_service = rospy.Service('uvd_to_xyz', UVDTOXYZ, self.uvd_xyz_cb)
+        self.conversion_service = rospy.Service('xyz_to_uvd', XYZTOUV, self.xyz_uv_cb)
 
-    #take a uvd point from the kinect and
-    #convert it to x,y,z
-    def conversion_service_cb(self, msg):
-        u, v, d = msg.u, msg.v, msg.d
+    def uvd_xyz_cb(self, msg):
+        return self.uvd_xyz_converter.convert_uvd_xyz(msg.u, msg.v, msg.d)
 
+    def xyz_uv_cb(self, msg):
+        return self.uvd_xyz_converter.convert_xyz_uv(msg.x, msg.y, msg.z)
+
+
+class UVD_XYZ_Converter():
+
+    def __init__(self, pinhole_model):
+        self.pinhole_model = pinhole_model
+
+    def convert_uvd_xyz(self, u, v, d):
         x, y, z = self.pinhole_model.projectPixelTo3dRay((u, v))
-        tx_fx = self.pinhole_model.Tx()/self.pinhole_model.fx()
-        x, y, z = d*(x+tx_fx)-tx_fx, d*y, d*z
-        #h = math.hypot(x, z)
-        #h = math.hypot(y, h)
+        tx_fx = self.pinhole_model.Tx() / self.pinhole_model.fx()
+        x, y, z = d * (x + tx_fx)-tx_fx, d*y, d*z
         return x, y, z
-        #return x*h, y*h, z*h
+
+    def convert_xyz_uv(self, x, y, z):
+        return self.pinhole_model.project3dToPixel((x, y, z))
 
 if __name__ == "__main__":
 

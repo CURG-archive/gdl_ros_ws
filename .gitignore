@@ -1,3 +1,16 @@
 pylearn_classifier_gdl/
 barrett_model/
+calibration/
+checkerboard_detection/
+graspit_msgs/
+model_rec2/
+moveit_trajectory_planner/
+owd/
+pose_msgs/
+pr_msgs/
+staubli/
+staubli_barretthand_description/
+staubli_barretthand_moveit_config/
+staubli_tx60/
+v4r_libraries/
 *.pyc

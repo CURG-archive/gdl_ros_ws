@@ -14,11 +14,20 @@ from pylearn_classifier_gdl.srv import CalculateGraspsServiceRequest
 from rgbd_listener import RGBDListener
 from grasp_publisher import GraspPublisher
 
+from skimage.segmentation import mark_boundaries
+
+from graspit_msgs.msg import Grasp
 
 if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
     import tkinter as Tk
+
+class MockGrasp():
+
+    def __init__(pose, joint_values=(0, 0, 0, 0, 0, 0, 0, 0)):
+        self.pose = pose
+        self.joint_values = joint_values
 
 
 class GUI():
@@ -51,9 +60,12 @@ class GUI():
         self.canvas = FigureCanvasTkAgg(fig, master=self.root)
         pkg_dir = roslib.packages.get_pkg_dir('ui')
         self.image = plt.imread(pkg_dir + '/san_jacinto.jpg')
+        self.depth_image = np.zeros((480, 640))
         self.mask = np.zeros((480, 640))
 
         self.set_capture_image(self.image)
+        self.set_depth_image(self.depth_image)
+
         self.set_mask_image(self.mask)
 
         self.draw()
@@ -61,12 +73,14 @@ class GUI():
         fig.canvas.mpl_connect('button_press_event', self.on_click)
 
         button_capture = Tk.Button(master=self.root, text='Capture', command=self.capture_button_cb)
+        button_reset_segmentation = Tk.Button(master=self.root, text='Reset Segmentation', command=self.reset_seg_button_cb)
         button_quit = Tk.Button(master=self.root, text='Quit', command=self.quit_button_cb)
         self.button_run_grasp_server = Tk.Button(master=self.root, text='get grasps', command=self.get_grasps_button_cb)
         self.button_run_grasp_server.config(state="disabled")
 
         button_quit.pack(side=Tk.LEFT)
         button_capture.pack()
+        button_reset_segmentation.pack()
         self.button_run_grasp_server.pack()
 
 
@@ -86,18 +100,25 @@ class GUI():
         current_grasp_energy = Tk.Label(master=sideFrame, textvariable=self.current_grasp_energy_text)
         current_grasp_xyz = Tk.Label(master=sideFrame, textvariable=self.current_grasp_xyz_text)
         #next button
-        self.button_next_grasp = Tk.Button(master=sideFrame, text="Next Grasp", command=self.goto_next_grasp)
+        self.button_next_grasp = Tk.Button(master=sideFrame, text="Next Grasp", command=self.goto_next_grasp_cb)
         #prev button
-        self.button_prev_grasp = Tk.Button(master=sideFrame, text="Prev Grasp", command=self.goto_prev_grasp)
+        self.button_prev_grasp = Tk.Button(master=sideFrame, text="Prev Grasp", command=self.goto_prev_grasp_cb)
+
+        #Execute grasp button
+        self.button_execute_grasp = Tk.Button(master=sideFrame, text="Exec Grasp", command=self.exec_grasp_cb)
+        self.grasp_pub = rospy.Publisher('/graspit/grasps', Grasp)
+
 
         self.button_next_grasp.config(state="disabled")
         self.button_prev_grasp.config(state="disabled")
 
         current_grasp_label.pack(side=Tk.TOP)
         current_grasp_energy.pack(side=Tk.TOP)
-        current_grasp_xyz.pack(side=Tk.CENTER)
+        self.button_execute_grasp.pack(side=Tk.BOTTOM)
+        current_grasp_xyz.pack(side=Tk.BOTTOM)
         self.button_next_grasp.pack(side=Tk.BOTTOM)
         self.button_prev_grasp.pack(side=Tk.BOTTOM)
+
 
 
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
@@ -116,33 +137,46 @@ class GUI():
         self._still_captured = True
         self.button_run_grasp_server.config(state="active")
 
-    def goto_next_grasp(self, *args):
+    def reset_seg_button_cb(self, *args):
+        rospy.loginfo("Resetting segmentation...")
+        self.rgbd_listener.resetSlic()
+
+    def goto_next_grasp_cb(self, *args):
         rospy.loginfo('next button pressed...')
         self.current_grasp += 1
         if self.current_grasp > len(self.grasp_list):
             self.current_grasp = 1
 
-        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
-
         grasp = self.grasp_list[self.current_grasp - 1]
+        self.grasp_publisher.publish_grasp(grasp)
+
+        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
         self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
         self.current_grasp_xyz_text.set("x: %s, y: %s, z:%s" % (grasp.pose.position.x, grasp.pose.position.y, grasp.pose.position.z))
 
-        self.grasp_publisher.publish_grasp(grasp)
-
-    def goto_prev_grasp(self, *args):
+    def goto_prev_grasp_cb(self, *args):
         rospy.loginfo('prev button pressed...')
         self.current_grasp -= 1
         if self.current_grasp == 0:
             self.current_grasp = len(self.grasp_list)
 
-        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
-
         grasp = self.grasp_list[self.current_grasp - 1]
+        self.grasp_publisher.publish_grasp(grasp)
+
+        self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
         self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
         self.current_grasp_xyz_text.set("x: %s, y: %s, z:%s" % (grasp.pose.position.x, grasp.pose.position.y, grasp.pose.position.z))
 
-        self.grasp_publisher.publish_grasp(grasp)
+    def exec_grasp_cb(self, *args):
+        grasp_msg = Grasp()
+
+        grasp_msg.grasp_type = Grasp.TYPE_FINGERTIP
+
+        grasp_msg.pre_grasp_pose = self.grasp_list[self.current_grasp - 1].pose
+        grasp_msg.final_grasp_pose = self.grasp_list[self.current_grasp - 1].pose
+
+        self.grasp_pub.publish(grasp_msg)
+
 
     def get_grasps_button_cb(self, *args):
 
@@ -153,6 +187,16 @@ class GUI():
             req = CalculateGraspsServiceRequest(self.image.flatten(), self.mask.flatten())
 
             self.grasp_list = calculate_grasps(req).grasps
+
+            for grasp in self.grasp_list:
+                old_x = grasp.pose.position.x
+                old_y = grasp.pose.position.y
+                old_z = grasp.pose.position.z
+
+                grasp.pose.position.x = old_z - 0.05
+                grasp.pose.position.y = -old_x
+                grasp.pose.position.z = -old_y
+
         except rospy.ServiceException, e:
             rospy.loginfo("Service call failed: %s" % e)
         rospy.loginfo(self.grasp_list)
@@ -179,20 +223,43 @@ class GUI():
     #it updates the image to be the most recently captured from the kinect.
     def update_image(self):
         #print("updating image")
-        self.set_capture_image(self.rgbd_listener.rgbd_image)
+        self.set_capture_image(self.rgbd_listener.rgbd_image,
+                               segments_slic=self.rgbd_listener.slic)
+        self.set_depth_image(self.rgbd_listener.rgbd_image[:, :, 3],
+                               segments_slic=self.rgbd_listener.slic)
         self.draw()
         if not self._still_captured:
             self.root.after(1000, self.update_image)
 
-    def set_capture_image(self, img):
+    def set_capture_image(self, img, segments_slic=None):
         self.image = img
-        plt.subplot(211)
+        plt.subplot(221)
         plt.title("capture")
-        self.plt_image = plt.imshow(img[:, :, 0:3])
+
+        convertedImg = img[:, :, 0:3][:, :, ::-1]
+        # bgr8 to rgb8 and throw out depth
+
+        if segments_slic is None:
+            self.plt_image = plt.imshow(convertedImg)
+        else:
+            img_with_boundaries = mark_boundaries(convertedImg, segments_slic)
+            self.plt_image = plt.imshow(img_with_boundaries)
+
+    def set_depth_image(self, img, segments_slic=None):
+        self.depth_image = img
+        plt.subplot(223)
+        plt.title("depth")
+
+        if segments_slic is None:
+            self.depth_plt_image = plt.imshow(self.depth_image)
+        else:
+            img_with_boundaries = mark_boundaries(self.depth_image, segments_slic)
+            self.depth_plt_image = plt.imshow(img_with_boundaries)
+
 
     def set_mask_image(self, img):
         self.mask = img
-        plt.subplot(212)
+        plt.subplot(224)
         plt.title("mask")
         self.plt_mask_image = plt.imshow(img)
 
@@ -202,14 +269,23 @@ class GUI():
         self.canvas.show()
 
     def on_click(self, event):
+        if event.xdata is None:
+            return
         rospy.loginfo('button=%d, x=%d, y=%d, xdata=%f, ydata=%f'%(
             event.button, event.x, event.y, event.xdata, event.ydata))
 
-        x_pos = event.xdata
-        y_pos = event.ydata
+        rospy.loginfo(self.image[event.ydata, event.xdata, 3])
+
+        x_pos = event.ydata
+        y_pos = event.xdata
+
+
+        # slic = self.rgbd_listener.getSlic()
+        # rospy.loginfo("seg # =%s" % slic[x_pos, y_pos])
+        # self.mask = np.in1d(slic.ravel(), [slic[x_pos, y_pos]]).reshape(slic.shape)
 
         self.mask = np.zeros((480, 640))
-        self.mask[y_pos, x_pos] = 100
+        self.mask[x_pos, y_pos] = 100
         self.mask = gaussian_filter(self.mask, sigma=10)
 
         self.set_mask_image(self.mask)
