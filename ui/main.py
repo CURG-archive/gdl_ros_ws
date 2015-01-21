@@ -16,10 +16,18 @@ from grasp_publisher import GraspPublisher
 
 from skimage.segmentation import mark_boundaries
 
+from graspit_msgs.msg import Grasp
+
 if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
     import tkinter as Tk
+
+class MockGrasp():
+
+    def __init__(pose, joint_values=(0, 0, 0, 0, 0, 0, 0, 0)):
+        self.pose = pose
+        self.joint_values = joint_values
 
 
 class GUI():
@@ -96,14 +104,21 @@ class GUI():
         #prev button
         self.button_prev_grasp = Tk.Button(master=sideFrame, text="Prev Grasp", command=self.goto_prev_grasp_cb)
 
+        #Execute grasp button
+        self.button_execute_grasp = Tk.Button(master=sideFrame, text="Exec Grasp", command=self.exec_grasp_cb)
+        self.grasp_pub = rospy.Publisher('/graspit/grasps', Grasp)
+
+
         self.button_next_grasp.config(state="disabled")
         self.button_prev_grasp.config(state="disabled")
 
         current_grasp_label.pack(side=Tk.TOP)
         current_grasp_energy.pack(side=Tk.TOP)
+        self.button_execute_grasp.pack(side=Tk.BOTTOM)
         current_grasp_xyz.pack(side=Tk.BOTTOM)
         self.button_next_grasp.pack(side=Tk.BOTTOM)
         self.button_prev_grasp.pack(side=Tk.BOTTOM)
+
 
 
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
@@ -152,6 +167,17 @@ class GUI():
         self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
         self.current_grasp_xyz_text.set("x: %s, y: %s, z:%s" % (grasp.pose.position.x, grasp.pose.position.y, grasp.pose.position.z))
 
+    def exec_grasp_cb(self, *args):
+        grasp_msg = Grasp()
+
+        grasp_msg.grasp_type = Grasp.TYPE_FINGERTIP
+
+        grasp_msg.pre_grasp_pose = self.grasp_list[self.current_grasp - 1].pose
+        grasp_msg.final_grasp_pose = self.grasp_list[self.current_grasp - 1].pose
+
+        self.grasp_pub.publish(grasp_msg)
+
+
     def get_grasps_button_cb(self, *args):
 
         rospy.wait_for_service('calculate_grasps_service')
@@ -161,6 +187,16 @@ class GUI():
             req = CalculateGraspsServiceRequest(self.image.flatten(), self.mask.flatten())
 
             self.grasp_list = calculate_grasps(req).grasps
+
+            for grasp in self.grasp_list:
+                old_x = grasp.pose.position.x
+                old_y = grasp.pose.position.y
+                old_z = grasp.pose.position.z
+
+                grasp.pose.position.x = old_z - 0.05
+                grasp.pose.position.y = -old_x
+                grasp.pose.position.z = -old_y
+
         except rospy.ServiceException, e:
             rospy.loginfo("Service call failed: %s" % e)
         rospy.loginfo(self.grasp_list)
@@ -244,13 +280,13 @@ class GUI():
         y_pos = event.xdata
 
 
-        slic = self.rgbd_listener.getSlic()
-        rospy.loginfo("seg # =%s" % slic[x_pos, y_pos])
-        self.mask = np.in1d(slic.ravel(), [slic[x_pos, y_pos]]).reshape(slic.shape)
+        # slic = self.rgbd_listener.getSlic()
+        # rospy.loginfo("seg # =%s" % slic[x_pos, y_pos])
+        # self.mask = np.in1d(slic.ravel(), [slic[x_pos, y_pos]]).reshape(slic.shape)
 
-        #self.mask = np.zeros((480, 640))
-        #self.mask[y_pos, x_pos] = 100
-        #self.mask = gaussian_filter(self.mask, sigma=10)
+        self.mask = np.zeros((480, 640))
+        self.mask[x_pos, y_pos] = 100
+        self.mask = gaussian_filter(self.mask, sigma=10)
 
         self.set_mask_image(self.mask)
         self.draw()

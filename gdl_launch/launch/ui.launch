@@ -12,8 +12,8 @@
 
     <!--demonstration hand to be displayed in rviz in order to help user determine what grasp to execute.-->
     <node name="demo_hand_joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-		<!--<rosparam param="source_list">["gdl_joint_states"]</rosparam>-->
-		<!--<rosparam param="use_gui">"false"</rosparam>-->
+		<rosparam param="source_list">["gdl_joint_states"]</rosparam>
+		<rosparam param="use_gui">"true"</rosparam>
         <rosparam param="tf_prefix">/demo_hand</rosparam>
         <remap from="robot_description" to="demo_hand_robot_description" />
         <remap from="joint_states" to="demo_hand_joint_states" />
@@ -21,14 +21,14 @@
 	</node>
 
     <!--Link Camera Link to demo_hand-->
-    <node name="camera_link_to_demo_hand_camera_link_tf_publisher" pkg="tf" type="static_transform_publisher" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 camera_link demo_hand/camera_link 1000" />
+    <node name="camera_link_to_demo_hand_camera_link_tf_publisher" pkg="tf" type="static_transform_publisher" args="0.0 0.0 0.0 0.0 0.70710678 0.0 0.70710678 camera_link demo_hand/camera_link 1000" />
 
 	<node name="demo_hand_robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
-            <rosparam param="tf_prefix">/demo_hand</rosparam>
-            <remap from="robot_description" to="demo_hand_robot_description" />
-           <remap from="joint_states" to="demo_hand_joint_states" />
+        <rosparam param="tf_prefix">/demo_hand</rosparam>
+        <remap from="robot_description" to="demo_hand_robot_description" />
+        <remap from="joint_states" to="demo_hand_joint_states" />
     </node>
 
-    <node name="position_tf_server" pkg="barrett_model" type="position_tf_server.py"/>
+    <!--<node name="position_tf_server" pkg="barrett_model" type="position_tf_server.py"/>-->
 
 </launch>

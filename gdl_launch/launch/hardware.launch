@@ -3,6 +3,7 @@
     <arg name="use_robot_hw" default="False"/>
 
     <include file="$(find staubli_barretthand_description)/launch/upload_staubli_bhand.launch"/>
+
     <group if="$(arg use_robot_hw)" >
         <include file="$(find owd)/launch/owd_bhand.launch"/>
         <node name="staubli_controller" pkg="staubli_tx60"  type="staubli_tx60_server" args="http://192.168.11.254:5653/"/>
@@ -12,7 +13,7 @@
     <group unless="$(arg use_robot_hw)">
          <!-- We do not have a robot connected, so publish fake joint states -->
          <node name="mock_joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-             <param name="/use_gui" value="false"/>
+             <param name="/use_gui" value="True"/>
              <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
          </node>
     </group>
