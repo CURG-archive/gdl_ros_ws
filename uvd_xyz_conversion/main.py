@@ -30,8 +30,12 @@ class UVD_XYZ_Converter():
         u, v, d = msg.u, msg.v, msg.d
 
         x, y, z = self.pinhole_model.projectPixelTo3dRay((u, v))
-        h = math.hypot(x,z)
-        return x*h, y*h, z*h
+        tx_fx = self.pinhole_model.Tx()/self.pinhole_model.fx()
+        x, y, z = d*(x+tx_fx)-tx_fx, d*y, d*z
+        #h = math.hypot(x, z)
+        #h = math.hypot(y, h)
+        return x, y, z
+        #return x*h, y*h, z*h
 
 if __name__ == "__main__":
 
