@@ -66,7 +66,7 @@ class PointCloudManager():
     def build_world_file(self, model_names, mesh_dir,time_dir ):
 
         world_xml = ""
-        world_xml += "  <?xml version=\"1.0\" ?>
+        world_xml += "  <?xml version=\"1.0\" ?>"
         world_xml += "  <world> \n"
 
         for model_name in model_names:

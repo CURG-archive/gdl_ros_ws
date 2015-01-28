@@ -66,42 +66,42 @@ namespace mesh_builder_node
         }
 
         //extract clusters
-        ClusterExtractor *clusterExtractor = new ClusterExtractor();
-        clusterExtractor->setCloud(cloud);
-        clusterExtractor->computeClusters();
-        std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> cloudClusters = clusterExtractor->getCloudClusters();
-        delete clusterExtractor;
+//        ClusterExtractor *clusterExtractor = new ClusterExtractor();
+//        clusterExtractor->setCloud(cloud);
+//        clusterExtractor->computeClusters();
+//        std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> cloudClusters = clusterExtractor->getCloudClusters();
+//        delete clusterExtractor;
 
 
-        for(int i = 0; i < cloudClusters.size(); i++)
-        {
+//        for(int i = 0; i < cloudClusters.size(); i++)
+//        {
 
-            std::ostringstream model_name;
-            model_name << "model_" << i;
+//            std::ostringstream model_name;
+//            model_name << "model_" << i;
 
-            pcl::OrganizedFastMesh<pcl::PointXYZRGB > orgMesh;
-            pcl::PolygonMesh triangles;
+//            pcl::OrganizedFastMesh<pcl::PointXYZRGB > orgMesh;
+//            pcl::PolygonMesh triangles;
 
-            orgMesh.setTriangulationType(pcl::OrganizedFastMesh<pcl::PointXYZRGB>::TRIANGLE_ADAPTIVE_CUT  );
-            orgMesh.setInputCloud(cloudClusters.at(i));
-            orgMesh.reconstruct(triangles);
+//            orgMesh.setTriangulationType(pcl::OrganizedFastMesh<pcl::PointXYZRGB>::TRIANGLE_ADAPTIVE_CUT  );
+//            orgMesh.setInputCloud(cloudClusters.at(i));
+//            orgMesh.reconstruct(triangles);
 
-            pcl::io::savePolygonFileSTL(req.output_filepath + model_name.str() + ".stl", triangles);
+//            pcl::io::savePolygonFileSTL(req.output_filepath + model_name.str() + ".stl", triangles);
 
-            res.segmented_mesh_filenames.push_back(model_name.str());
-        }
+//            res.segmented_mesh_filenames.push_back(model_name.str());
+//        }
 
         // This will output cloud as one large mesh
-//        pcl::OrganizedFastMesh<pcl::PointXYZRGB > orgMesh;
-//        pcl::PolygonMesh triangles;
+        pcl::OrganizedFastMesh<pcl::PointXYZRGB > orgMesh;
+        pcl::PolygonMesh triangles;
 
-//        orgMesh.setTriangulationType(pcl::OrganizedFastMesh<pcl::PointXYZRGB>::TRIANGLE_ADAPTIVE_CUT  );
-//        orgMesh.setInputCloud(cloud);
-//        orgMesh.reconstruct(triangles);
+        orgMesh.setTriangulationType(pcl::OrganizedFastMesh<pcl::PointXYZRGB>::TRIANGLE_ADAPTIVE_CUT  );
+        orgMesh.setInputCloud(cloud);
+        orgMesh.reconstruct(triangles);
 
-//        pcl::io::savePolygonFileSTL(req.output_filepath + "out.stl", triangles);
+        pcl::io::savePolygonFileSTL(req.output_filepath + "out.stl", triangles);
 
-//        res.segmented_mesh_filenames.push_back("out");
+        res.segmented_mesh_filenames.push_back("out");
 
 
 
