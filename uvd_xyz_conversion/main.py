@@ -41,8 +41,6 @@ class UVD_XYZ_Converter():
     def convert_xyz_uv(self, x, y, z):
         return self.pinhole_model.project3dToPixel((x, y, z))
 
-
-
 if __name__ == "__main__":
 
     rospy.init_node("UVD_XYZ_Conversion_Node")
