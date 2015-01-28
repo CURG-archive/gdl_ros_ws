@@ -14,3 +14,4 @@ staubli_barretthand_moveit_config/
 staubli_tx60/
 v4r_libraries/
 *.pyc
+*.stl
