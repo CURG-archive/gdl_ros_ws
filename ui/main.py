@@ -11,12 +11,19 @@ from scipy.ndimage import gaussian_filter
 from pylearn_classifier_gdl.srv import  CalculateGraspsService
 from pylearn_classifier_gdl.srv import CalculateGraspsServiceRequest
 
+from sensor_msgs.msg import PointCloud2
+
 from rgbd_listener import RGBDListener
 from grasp_publisher import GraspPublisher
 
 from skimage.segmentation import mark_boundaries
 
 from graspit_msgs.msg import Grasp
+from mesh_builder.srv import MeshCloudRequest, MeshCloud
+import rospkg
+rospack = rospkg.RosPack()
+import os
+import time
 
 if sys.version_info[0] < 3:
     import Tkinter as Tk
@@ -25,9 +32,95 @@ else:
 
 class MockGrasp():
 
-    def __init__(pose, joint_values=(0, 0, 0, 0, 0, 0, 0, 0)):
+    def __init__(self, pose, joint_values=(0, 0, 0, 0, 0, 0, 0, 0)):
         self.pose = pose
         self.joint_values = joint_values
+
+
+class PointCloudManager():
+
+    def __init__(self, pc_topic="/camera/depth_registered/points"):
+        self.pc_topic = pc_topic
+        self.pc = None
+        self.publisher = None
+        self.is_capturing = True
+
+        self.mesh_path = rospack.get_path('mesh_builder') + "/meshes/"
+
+    def point_cloud_callback(self, data):
+        if self.is_capturing:
+            self.pc = data
+
+    def build_graspit_model_xml(self, model_name, mesh_dir):
+
+        model_xml = ""
+        model_xml += '<?xml version="1.0" ?>\n'
+        model_xml += '  <root>\n'
+        model_xml += '     <geometryFile type="Inventor">' + model_name + ".stl" + '</geometryFile>\n'
+        model_xml += '  </root>'
+
+        f = open(mesh_dir + model_name + ".xml", 'w')
+        f.write(model_xml)
+        f.close()
+
+    def build_world_file(self, model_names, mesh_dir,time_dir ):
+
+        world_xml = ""
+        world_xml += "  <?xml version=\"1.0\" ?>
+        world_xml += "  <world> \n"
+
+        for model_name in model_names:
+            world_xml += " 	<graspableBody> \n"
+            world_xml += " 		<filename>" "gdl_meshes/" + time_dir + model_name + ".xml</filename>\n"
+            world_xml += " 		<transform>\n"
+            world_xml += " 			<fullTransform>(+1 +0 +0 +0)[+0 +0 +0]</fullTransform>\n"
+            world_xml += " 		</transform>\n"
+            world_xml += " 	</graspableBody>\n"
+
+        world_xml += " 	<robot>\n"
+        world_xml += " 		<filename>models/robots/NewBarrett/NewBarrett.xml</filename>\n"
+        world_xml += " 		<dofValues>+0 +1.38064 +0 +0 +1.97002 +1 +1.36752 +0 +1.39189 +0 +0 </dofValues>\n"
+        world_xml += " 		<transform>\n"
+        world_xml += " 			<fullTransform>(-0.280913 -0.714488 +0.00500968 +0.640757)[+39.5943 +25.7277 +54.0391]</fullTransform>\n"
+        world_xml += " 		</transform>\n"
+        world_xml += " 	</robot>\n"
+        world_xml += " 	<camera>\n"
+        world_xml += " 		<position>-360.061 +993.574 -9.2951</position>\n"
+        world_xml += " 		<orientation>+0.161447 -0.728796 -0.652878 +0.128612</orientation>\n"
+        world_xml += " 		<focalDistance>+1154.76</focalDistance>\n"
+        world_xml += " 	</camera>\n"
+        world_xml += " </world>\n"
+
+        f = open(mesh_dir + "world.xml", 'w')
+        f.write(world_xml)
+        f.close()
+
+    def run_service(self):
+        time_dir = str(int(time.time())) + '/'
+        mesh_dir = self.mesh_path + time_dir
+        if not os.path.exists(mesh_dir):
+            os.mkdir(mesh_dir)
+
+        req = MeshCloudRequest()
+        req.input_cloud = self.pc
+        req.output_filepath = mesh_dir
+
+        response = self.service_proxy(req)
+        model_names = response.segmented_mesh_filenames
+        for model_name in model_names:
+            self.build_graspit_model_xml(model_name, mesh_dir)
+
+        self.build_world_file(model_names, mesh_dir, time_dir)
+
+        print response
+
+    def listen(self, init_node=False):
+        if init_node:
+            rospy.init_node('listener', anonymous=True)
+
+        rospy.Subscriber(self.pc_topic, PointCloud2, self.point_cloud_callback, queue_size=1)
+        self.service_proxy = rospy.ServiceProxy("/meshCloud", MeshCloud)
+
 
 
 class GUI():
@@ -36,6 +129,7 @@ class GUI():
         #show live stream until capture button is pressed
         self._still_captured = False
         self.rgbd_listener = RGBDListener()
+        self.pc_manager = PointCloudManager()
 
         self.grasp_publisher = GraspPublisher()
 
@@ -124,6 +218,7 @@ class GUI():
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
         self.rgbd_listener.listen()
+        self.pc_manager.listen()
 
         Tk.mainloop()
 
@@ -135,6 +230,10 @@ class GUI():
     def capture_button_cb(self, *args):
         rospy.loginfo("capture press...")
         self._still_captured = True
+        self.pc_manager.is_capturing = False
+        #self.pc_manager.publish_cloud()
+        self.pc_manager.run_service()
+
         self.button_run_grasp_server.config(state="active")
 
     def reset_seg_button_cb(self, *args):

@@ -29,6 +29,9 @@
         <remap from="joint_states" to="demo_hand_joint_states" />
     </node>
 
+
+	<node name="mesh_builder_node" pkg="mesh_builder" type="mesh_builder_node"/>
+
     <!--<node name="position_tf_server" pkg="barrett_model" type="position_tf_server.py"/>-->
 
 </launch>

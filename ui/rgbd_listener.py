@@ -1,6 +1,6 @@
 import numpy as np
 import rospy
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge, CvBridgeError
 
 # Segmentation
@@ -14,8 +14,10 @@ class RGBDListener():
 
         self.depth_topic = depth_topic
         self.rgb_topic = rgb_topic
+
         self.data = None
         self.slic = None
+
 
         #this is the current image
         self.rgbd_image = np.zeros((480, 640, 4))
@@ -33,6 +35,7 @@ class RGBDListener():
         self.data = data
         rgbd_image_np = self.image2numpy(data)
         self.rgbd_image[:, :, 0:3] = (rgbd_image_np / 255.0)
+
 
     def getSlic(self):
         self.slic = slic(self.depth_image,
