@@ -14,7 +14,8 @@ void ClusterExtractor::computeClusters()
     pcl::VoxelGrid<pcl::PointXYZRGB> vg;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);
     vg.setInputCloud (sceneCloud);
-    vg.setLeafSize (0.01f, 0.01f, 0.01f);
+    //vg.setLeafSize (0.01f, 0.01f, 0.01f);
+    vg.setLeafSize (10, 10, 10);
     vg.filter (*cloud_filtered);
     std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl; //*
 
@@ -26,7 +27,8 @@ void ClusterExtractor::computeClusters()
     seg.setModelType (pcl::SACMODEL_PLANE);
     seg.setMethodType (pcl::SAC_RANSAC);
     seg.setMaxIterations (100);
-    seg.setDistanceThreshold (0.02);
+    //seg.setDistanceThreshold (0.02);
+    seg.setDistanceThreshold (20);
 
     int i=0, nr_points = (int) cloud_filtered->points.size ();
     while (true)
@@ -72,7 +74,8 @@ void ClusterExtractor::computeClusters()
 
     std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
-    ec.setClusterTolerance (0.02); // 2cm
+    //ec.setClusterTolerance (0.02); // 2cm
+    ec.setClusterTolerance (20); // 2cm
     ec.setMinClusterSize (100);
     ec.setMaxClusterSize (25000000);
     ec.setSearchMethod (tree);
@@ -89,5 +92,6 @@ void ClusterExtractor::computeClusters()
         cloud_cluster->is_dense = true;
 
         cloudClusters.push_back(cloud_cluster);
+        std::cout << "cluster_size: " << cloud_cluster->points.size () << '\n';
     }
 }

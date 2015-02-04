@@ -2,3 +2,4 @@ string output_filepath
 sensor_msgs/PointCloud2 input_cloud
 ---
 string[] segmented_mesh_filenames
+geometry_msgs/Vector3[] offsets
