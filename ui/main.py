@@ -8,8 +8,9 @@ import numpy as np
 import roslib
 import rospy
 from scipy.ndimage import gaussian_filter
-from pylearn_classifier_gdl.srv import  CalculateGraspsService
+from pylearn_classifier_gdl.srv import CalculateGraspsService
 from pylearn_classifier_gdl.srv import CalculateGraspsServiceRequest
+from cloud_mesher import CloudMesher
 
 from rgbd_listener import RGBDListener
 from grasp_publisher import GraspPublisher
@@ -18,6 +19,8 @@ from skimage.segmentation import mark_boundaries
 
 from graspit_msgs.msg import Grasp
 
+import os
+
 if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
@@ -25,7 +28,7 @@ else:
 
 class MockGrasp():
 
-    def __init__(pose, joint_values=(0, 0, 0, 0, 0, 0, 0, 0)):
+    def __init__(self, pose, joint_values=(0, 0, 0, 0, 0, 0, 0, 0)):
         self.pose = pose
         self.joint_values = joint_values
 
@@ -36,6 +39,7 @@ class GUI():
         #show live stream until capture button is pressed
         self._still_captured = False
         self.rgbd_listener = RGBDListener()
+        self.cloud_mesher = CloudMesher()
 
         self.grasp_publisher = GraspPublisher()
 
@@ -124,6 +128,7 @@ class GUI():
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
         self.rgbd_listener.listen()
+        self.cloud_mesher.listen()
 
         Tk.mainloop()
 
@@ -135,6 +140,10 @@ class GUI():
     def capture_button_cb(self, *args):
         rospy.loginfo("capture press...")
         self._still_captured = True
+        self.cloud_mesher.is_capturing = False
+        #self.pc_manager.publish_cloud()
+        self.cloud_mesher.run_service()
+
         self.button_run_grasp_server.config(state="active")
 
     def reset_seg_button_cb(self, *args):
@@ -186,34 +195,55 @@ class GUI():
 
             req = CalculateGraspsServiceRequest(self.image.flatten(), self.mask.flatten())
 
-            self.grasp_list = calculate_grasps(req).grasps
+            response = calculate_grasps(req)
 
-            for grasp in self.grasp_list:
-                old_x = grasp.pose.position.x
-                old_y = grasp.pose.position.y
-                old_z = grasp.pose.position.z
+            heatmaps = np.array(response.heatmaps)
+            heatmaps = heatmaps.reshape(response.heatmap_dims)
 
-                grasp.pose.position.x = old_z - 0.05
-                grasp.pose.position.y = -old_x
-                grasp.pose.position.z = -old_y
+            save_path = self.cloud_mesher.time_dir_full_filepath
+            save_path += "heatmaps/"
+
+            if not os.path.exists(save_path):
+                os.mkdir(save_path)
+
+            for i in range(heatmaps.shape[0]):
+                np.savetxt(save_path + str(i) + '.txt', heatmaps[i])
+
+            rospy.loginfo("Heatmaps saved")
 
         except rospy.ServiceException, e:
             rospy.loginfo("Service call failed: %s" % e)
-        rospy.loginfo(self.grasp_list)
 
-        if len(self.grasp_list) > 0:
-            self.button_next_grasp.config(state="active")
-            self.button_prev_grasp.config(state="active")
-            self.current_grasp = 1
 
-            grasp = self.grasp_list[0]
-            self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
-            self.grasp_publisher.publish_grasp(grasp)
 
-        else:
-            self.button_next_grasp.config(state="disabled")
-            self.button_prev_grasp.config(state="disabled")
-            self.current_grasp = 0
+        #     self.grasp_list = response.grasps
+        #
+        #     for grasp in self.grasp_list:
+        #         old_x = grasp.pose.position.x
+        #         old_y = grasp.pose.position.y
+        #         old_z = grasp.pose.position.z
+        #
+        #         grasp.pose.position.x = old_z - 0.05
+        #         grasp.pose.position.y = -old_x
+        #         grasp.pose.position.z = -old_y
+        #
+        # except rospy.ServiceException, e:
+        #     rospy.loginfo("Service call failed: %s" % e)
+        # rospy.loginfo(self.grasp_list)
+        #
+        # if len(self.grasp_list) > 0:
+        #     self.button_next_grasp.config(state="active")
+        #     self.button_prev_grasp.config(state="active")
+        #     self.current_grasp = 1
+        #
+        #     grasp = self.grasp_list[0]
+        #     self.current_grasp_energy_text.set("Energy = %s" % grasp.grasp_energy)
+        #     self.grasp_publisher.publish_grasp(grasp)
+        #
+        # else:
+        #     self.button_next_grasp.config(state="disabled")
+        #     self.button_prev_grasp.config(state="disabled")
+        #     self.current_grasp = 0
 
 
         self.current_grasp_label_text.set("%s / %s" % (self.current_grasp, len(self.grasp_list)))
