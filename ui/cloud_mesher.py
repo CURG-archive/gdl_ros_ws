@@ -66,11 +66,11 @@ class CloudMesher():
         for i in range(len(model_names)):
             model_name = model_names[i]
             offset = offsets[i]
-            if model_name is not "single_mesh":
+            if not "single_mesh" in model_name:
                 world_xml += " 	<graspableBody> \n"
                 world_xml += " 		<filename>" "models/captured_meshes/" + self.time_dir + model_name + ".xml</filename>\n"
                 world_xml += " 		<transform>\n"
-                world_xml += " 			<fullTransform>(+1 +0 +0 +0)[+" + str(offset.x) + " +" + str(offset.y) + " +" + str(offset.z) + "]</fullTransform>\n"
+                world_xml += " 			<fullTransform>(+1 +0 +0 +0)[" + str(offset.x) + " " + str(offset.y) + " " + str(offset.z) + "]</fullTransform>\n"
                 world_xml += " 		</transform>\n"
                 world_xml += " 	</graspableBody>\n"
 

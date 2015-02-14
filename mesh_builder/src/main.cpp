@@ -99,25 +99,25 @@ namespace mesh_builder_node
             int mesh_index = 0;
             for(int i = 0; i < cloudClusters.size(); i++)
             {
-                pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (cloudClusters.at(i));
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudCluster (cloudClusters.at(i));
 
 
-                if (cloud->size() > 10)
+                if (cloudCluster->size() > 10)
                 {
                     std::ostringstream model_name;
                     model_name << "model_" << mesh_index;
 
                     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz (new pcl::PointCloud<pcl::PointXYZ>());
                     // [...]
-                    pcl::copyPointCloud(*cloud,*cloud_xyz);
+                    pcl::copyPointCloud(*cloudCluster,*cloud_xyz);
 
                     // Normal estimation*
                      pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
                      pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-                     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
-                     tree->setInputCloud (cloud_xyz);
+                     pcl::search::KdTree<pcl::PointXYZ>::Ptr normalEstimationTree (new pcl::search::KdTree<pcl::PointXYZ>);
+                     normalEstimationTree->setInputCloud (cloud_xyz);
                      n.setInputCloud (cloud_xyz);
-                     n.setSearchMethod (tree);
+                     n.setSearchMethod (normalEstimationTree);
                      n.setKSearch (20);
                      n.compute (*normals);
                      n.setViewPoint(0,0,0);
@@ -131,7 +131,7 @@ namespace mesh_builder_node
 
 
                      Eigen::Vector4f centroid (0.f, 0.f, 0.f, 1.f);
-                     pcl::compute3DCentroid (*cloud, centroid); centroid.w () = 1.f;
+                     pcl::compute3DCentroid (*cloudCluster, centroid); centroid.w () = 1.f;
 
                      pcl::PointCloud<pcl::PointNormal>::Ptr centered_cloud_with_normals (new pcl::PointCloud<pcl::PointNormal>);
 
@@ -139,15 +139,20 @@ namespace mesh_builder_node
                      for (p = cloud_with_normals->points.begin(); p < cloud_with_normals->points.end(); p++)
                      {
                          pcl::PointNormal *point = new pcl::PointNormal;
+
                          point->x = p->x - centroid.x();
                          point->y = p->y - centroid.y();
                          point->z = p->z - centroid.z();
+                         point->normal_x = p->normal_x;
+                         point->normal_y = p->normal_y;
+                         point->normal_z = p->normal_z;
+
                          centered_cloud_with_normals->points.push_back(*point);
                      }
 
                      // Create search tree*
-                     pcl::search::KdTree<pcl::PointNormal>::Ptr tree2 (new pcl::search::KdTree<pcl::PointNormal>);
-                     tree2->setInputCloud (centered_cloud_with_normals);
+                     pcl::search::KdTree<pcl::PointNormal>::Ptr meshTree (new pcl::search::KdTree<pcl::PointNormal>);
+                     meshTree->setInputCloud (centered_cloud_with_normals);
 
                      // Initialize objects
                      pcl::GreedyProjectionTriangulation<pcl::PointNormal> gp3;
@@ -167,16 +172,18 @@ namespace mesh_builder_node
 
                      // Get result
                      gp3.setInputCloud (centered_cloud_with_normals);
-                     gp3.setSearchMethod (tree2);
+                     gp3.setSearchMethod (meshTree);
                      gp3.reconstruct (triangles);
 
                     pcl::io::savePolygonFileSTL(req.output_filepath + model_name.str() + ".stl", triangles);
 
                     res.segmented_mesh_filenames.push_back(model_name.str());
+
                     geometry_msgs::Vector3 *offset = new geometry_msgs::Vector3;
-                    offset->x = -centroid.x();
-                    offset->y = -centroid.y();
-                    offset->z = -centroid.z();
+                    offset->x = centroid.x();
+                    offset->y = centroid.y();
+                    offset->z = centroid.z();
+
                     res.offsets.push_back(*offset);
 
                     mesh_index++;
@@ -187,15 +194,14 @@ namespace mesh_builder_node
 
         //save scene as one big mesh as well.
         pcl::io::savePolygonFileSTL(req.output_filepath + "single_mesh.stl", triangles);
-        res.segmented_mesh_filenames.push_back("single_mesh");
+
         geometry_msgs::Vector3 *offset = new geometry_msgs::Vector3;
         offset->x = 0;
         offset->y = 0;
         offset->z = 0;
+
         res.offsets.push_back(*offset);
-
-
-
+        res.segmented_mesh_filenames.push_back("single_mesh");
 
         ROS_INFO("saved_file");
         return true;
