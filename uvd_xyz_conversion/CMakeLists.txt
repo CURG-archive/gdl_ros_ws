@@ -54,6 +54,7 @@ find_package(catkin REQUIRED
  add_service_files(
    FILES
    UVDTOXYZ.srv
+   XYZTOUV.srv
  )
 
 ## Generate actions in the 'action' folder

@@ -44,6 +44,6 @@ class UVD_XYZ_Converter():
 if __name__ == "__main__":
 
     rospy.init_node("UVD_XYZ_Conversion_Node")
-    uvd_xyz_converter = UVD_XYZ_Converter()
+    uvd_xyz_converter = UVD_XYZ_Converter_Service()
     rospy.spin()
 
