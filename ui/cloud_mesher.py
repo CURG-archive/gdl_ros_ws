@@ -22,7 +22,7 @@ class CloudMesher():
         #this is the fullpath upto and including the time_dir
         self.time_dir_full_filepath = None
 
-        self.mesh_path = '/home/jvarley/grasp_deep_learning/gdl/src/graspit_bci/models/captured_meshes/'
+        self.mesh_path = os.path.expanduser('~/grasp_deep_learning/gdl/src/graspit_bci/models/captured_meshes/')
 
     def point_cloud_callback(self, data):
         if self.is_capturing:
@@ -107,8 +107,9 @@ class CloudMesher():
         offsets = response.offsets
 
         for model_name in model_names:
-            self.build_graspit_model_iv(model_name)
-            self.build_graspit_model_xml(model_name)
+            if not "single_mesh" in model_name:
+                self.build_graspit_model_iv(model_name)
+                self.build_graspit_model_xml(model_name)
 
         self.build_world_file(model_names, offsets)
 
