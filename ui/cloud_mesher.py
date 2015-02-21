@@ -92,8 +92,8 @@ class CloudMesher():
         f.write(world_xml)
         f.close()
 
-    def run_service(self):
-        self.time_dir = str(int(time.time())) + '/'
+    def run_service(self, world_name):
+        self.time_dir = str(int(time.time())) + "_" + world_name + '/'
         self.time_dir_full_filepath = self.mesh_path + self.time_dir
         if not os.path.exists(self.time_dir_full_filepath):
             os.mkdir(self.time_dir_full_filepath)

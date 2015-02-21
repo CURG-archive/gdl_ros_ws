@@ -107,14 +107,14 @@ namespace mesh_builder_node
                     std::ostringstream model_name;
                     model_name << "model_" << mesh_index;
 
-                    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz (new pcl::PointCloud<pcl::PointXYZ>());
+                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_xyz (new pcl::PointCloud<pcl::PointXYZRGB>());
                     // [...]
                     pcl::copyPointCloud(*cloudCluster,*cloud_xyz);
 
                     // Normal estimation*
-                     pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
+                     pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> n;
                      pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-                     pcl::search::KdTree<pcl::PointXYZ>::Ptr normalEstimationTree (new pcl::search::KdTree<pcl::PointXYZ>);
+                     pcl::search::KdTree<pcl::PointXYZRGB>::Ptr normalEstimationTree (new pcl::search::KdTree<pcl::PointXYZRGB>);
                      normalEstimationTree->setInputCloud (cloud_xyz);
                      n.setInputCloud (cloud_xyz);
                      n.setSearchMethod (normalEstimationTree);
@@ -125,7 +125,7 @@ namespace mesh_builder_node
                      //* normals should not contain the point normals + surface curvatures
 
                      // Concatenate the XYZ and normal fields*
-                     pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals (new pcl::PointCloud<pcl::PointNormal>);
+                     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_with_normals (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
                      pcl::concatenateFields (*cloud_xyz, *normals, *cloud_with_normals);
                      //* cloud_with_normals = cloud + normals
 
@@ -133,16 +133,20 @@ namespace mesh_builder_node
                      Eigen::Vector4f centroid (0.f, 0.f, 0.f, 1.f);
                      pcl::compute3DCentroid (*cloudCluster, centroid); centroid.w () = 1.f;
 
-                     pcl::PointCloud<pcl::PointNormal>::Ptr centered_cloud_with_normals (new pcl::PointCloud<pcl::PointNormal>);
+                     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr centered_cloud_with_normals (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
 
-                     pcl::PointCloud<pcl::PointNormal>::iterator p;
+                     pcl::PointCloud<pcl::PointXYZRGBNormal>::iterator p;
                      for (p = cloud_with_normals->points.begin(); p < cloud_with_normals->points.end(); p++)
                      {
-                         pcl::PointNormal *point = new pcl::PointNormal;
+                         pcl::PointXYZRGBNormal *point = new pcl::PointXYZRGBNormal;
 
                          point->x = p->x - centroid.x();
                          point->y = p->y - centroid.y();
                          point->z = p->z - centroid.z();
+                         point->r = 200;
+                         point->g = 0;
+                         point->b = 0;
+                         point->a = p->a;
                          point->normal_x = p->normal_x;
                          point->normal_y = p->normal_y;
                          point->normal_z = p->normal_z;
@@ -151,11 +155,11 @@ namespace mesh_builder_node
                      }
 
                      // Create search tree*
-                     pcl::search::KdTree<pcl::PointNormal>::Ptr meshTree (new pcl::search::KdTree<pcl::PointNormal>);
+                     pcl::search::KdTree<pcl::PointXYZRGBNormal>::Ptr meshTree (new pcl::search::KdTree<pcl::PointXYZRGBNormal>);
                      meshTree->setInputCloud (centered_cloud_with_normals);
 
                      // Initialize objects
-                     pcl::GreedyProjectionTriangulation<pcl::PointNormal> gp3;
+                     pcl::GreedyProjectionTriangulation<pcl::PointXYZRGBNormal> gp3;
                      pcl::PolygonMesh triangles;
 
                      // Set the maximum distance between connected points (maximum edge length)

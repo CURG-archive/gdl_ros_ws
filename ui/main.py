@@ -1,23 +1,17 @@
 #!/usr/bin/env python
 import matplotlib
 import sys
+import rospy
+import numpy as np
+
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import pylab as plt
-import numpy as np
-import roslib
-import rospy
-from scipy.ndimage import gaussian_filter
 
 from cloud_mesher import CloudMesher
 from heatmap_generator import HeatmapGenerator
-
 from rgbd_listener import RGBDListener
 from grasp_publisher import GraspPublisher
-
-from skimage.segmentation import mark_boundaries
-
-from graspit_msgs.msg import Grasp
 
 
 if sys.version_info[0] < 3:
@@ -47,29 +41,28 @@ class GUI():
         fig = plt.figure(figsize=(8, 8))
 
         self.canvas = FigureCanvasTkAgg(fig, master=self.root)
-        pkg_dir = roslib.packages.get_pkg_dir('ui')
-        self.image = plt.imread(pkg_dir + '/san_jacinto.jpg')
+
+        self.image = np.zeros((480, 640, 3))
         self.depth_image = np.zeros((480, 640))
-        #self.mask = np.zeros((480, 640))
 
         self.set_capture_image(self.image)
         self.set_depth_image(self.depth_image)
-
-        #self.set_mask_image(self.mask)
 
         self.draw()
 
         fig.canvas.mpl_connect('button_press_event', self.on_click)
 
         button_capture = Tk.Button(master=self.root, text='Capture', command=self.capture_button_cb)
-        #button_reset_segmentation = Tk.Button(master=self.root, text='Reset Segmentation', command=self.reset_seg_button_cb)
         button_quit = Tk.Button(master=self.root, text='Quit', command=self.quit_button_cb)
         self.button_run_grasp_server = Tk.Button(master=self.root, text='get grasps', command=self.get_heatmaps_button_cb)
         self.button_run_grasp_server.config(state="disabled")
 
+        self.world_name_text_box = Tk.Entry(master=self.root)
+        self.world_name_text_box.pack()
+        self.world_name_text_box.insert(0, "world")
+
         button_quit.pack(side=Tk.LEFT)
         button_capture.pack()
-        #button_reset_segmentation.pack()
         self.button_run_grasp_server.pack()
 
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
@@ -89,7 +82,8 @@ class GUI():
         self._still_captured = True
         self.cloud_mesher.is_capturing = False
 
-        self.cloud_mesher.run_service()
+        world_name = self.world_name_text_box.get()
+        self.cloud_mesher.run_service(world_name)
 
         self.button_run_grasp_server.config(state="active")
 
@@ -117,28 +111,16 @@ class GUI():
         # bgr8 to rgb8 and throw out depth
         convertedImg = img[:, :, 0:3][:, :, ::-1]
 
-        if segments_slic is None:
-            self.plt_image = plt.imshow(convertedImg)
-        else:
-            img_with_boundaries = mark_boundaries(convertedImg, segments_slic)
-            self.plt_image = plt.imshow(img_with_boundaries)
+        self.plt_image = plt.imshow(convertedImg)
+
 
     def set_depth_image(self, img, segments_slic=None):
         self.depth_image = np.copy(img)
         plt.subplot(212)
         plt.title("depth")
 
-        if segments_slic is None:
-            self.depth_plt_image = plt.imshow(self.depth_image)
-        else:
-            img_with_boundaries = mark_boundaries(self.depth_image, segments_slic)
-            self.depth_plt_image = plt.imshow(img_with_boundaries)
+        self.depth_plt_image = plt.imshow(self.depth_image)
 
-    #def set_mask_image(self, img):
-    #    self.mask = img
-    #    plt.subplot(222)
-    #    plt.title("mask")
-    #    self.plt_mask_image = plt.imshow(img)
 
     def draw(self):
         self.root.update()
