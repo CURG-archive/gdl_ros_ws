@@ -50,8 +50,6 @@ class GUI():
 
         self.draw()
 
-        fig.canvas.mpl_connect('button_press_event', self.on_click)
-
         button_capture = Tk.Button(master=self.root, text='Capture', command=self.capture_button_cb)
         button_quit = Tk.Button(master=self.root, text='Quit', command=self.quit_button_cb)
         self.button_run_grasp_server = Tk.Button(master=self.root, text='get grasps', command=self.get_heatmaps_button_cb)
@@ -87,10 +85,6 @@ class GUI():
 
         self.button_run_grasp_server.config(state="active")
 
-    #def reset_seg_button_cb(self, *args):
-    #
-    #    self.rgbd_listener.resetSlic()
-
     def get_heatmaps_button_cb(self, *args):
         self.heatmap_generator.get_heatmaps(self.image, self.cloud_mesher.time_dir_full_filepath)
 
@@ -121,29 +115,11 @@ class GUI():
 
         self.depth_plt_image = plt.imshow(self.depth_image)
 
-
     def draw(self):
         self.root.update()
         self.canvas.draw()
         self.canvas.show()
 
-    def on_click(self, event):
-        if event.xdata is None:
-            return
-        rospy.loginfo('button=%d, x=%d, y=%d, xdata=%f, ydata=%f'%(
-            event.button, event.x, event.y, event.xdata, event.ydata))
-
-        rospy.loginfo(self.image[event.ydata, event.xdata, 3])
-
-        x_pos = event.ydata
-        y_pos = event.xdata
-
-        #self.mask = np.zeros((480, 640))
-        #self.mask[x_pos, y_pos] = 100
-        #self.mask = gaussian_filter(self.mask, sigma=10)
-
-        #self.set_mask_image(self.mask)
-        #self.draw()
 
 if __name__ == "__main__":
     rospy.init_node('ui_node')
