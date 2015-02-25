@@ -71,7 +71,6 @@ namespace mesh_builder_node
         struct timeval startTime;
         gettimeofday(&startTime, NULL);
         long int startTimeMS = startTime.tv_sec * 1000 + startTime.tv_usec / 1000;
-:
 
 
         pcl::PCLPointCloud2::Ptr pcl_pc (new pcl::PCLPointCloud2());
