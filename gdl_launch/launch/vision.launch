@@ -1,5 +1,0 @@
-<launch>
-    <arg name="use_vision_hw" default="True" />
-
-    <include file="$(find openni_launch)/launch/openni.launch"/>
-</launch>

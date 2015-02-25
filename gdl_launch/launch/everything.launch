@@ -1,29 +1,6 @@
 <launch>
 
-    <arg name="use_trajectory_planning" default="False" />
-
-    <!--Do we want to move the actual robot-->
-    <arg name="use_robot_hw" default="False" />
-    <arg name="use_vision_hw" default="True" />
-
-    <!--<group if="$(arg use_trajectory_planning)" >-->
-        <!--&lt;!&ndash;Spin up the nodes that communicate to the actual robot&ndash;&gt;-->
-        <!--<include file="$(find gdl_launch)/launch/hardware.launch">-->
-            <!--<arg name="use_robot_hw" value="$(arg use_robot_hw)" />-->
-        <!--</include>-->
-
-        <!--Spin up nodes related to planning -->
-        <!--<include file="$(find gdl_launch)/launch/planners.launch">-->
-            <!--<arg name="use_robot_hw" value="$(arg use_robot_hw)" />-->
-        <!--</include>-->
-    <!--</group>-->
-
-    <!--Spin up the nodes related to vision or mock vision-->
-    <!--<include file="$(find gdl_launch)/launch/vision.launch" >-->
-        <!--<arg name="use_vision_hw" value="$(arg use_vision_hw)" />-->
-    <!--</include>-->
-
-    <!--Spin up the nodes related to visualization and user inCput-->
-    <include file="$(find gdl_launch)/launch/ui.launch" > </include>
+    <node name="ui_node" pkg="ui" type="main.py"/>
+	<node name="mesh_builder_node" pkg="mesh_builder" type="mesh_builder_node"/>
 
 </launch>
