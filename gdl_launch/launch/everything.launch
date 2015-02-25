@@ -6,24 +6,24 @@
     <arg name="use_robot_hw" default="False" />
     <arg name="use_vision_hw" default="True" />
 
-    <group if="$(arg use_trajectory_planning)" >
-        <!--Spin up the nodes that communicate to the actual robot-->
-        <include file="$(find gdl_launch)/launch/hardware.launch">
-            <arg name="use_robot_hw" value="$(arg use_robot_hw)" />
-        </include>
+    <!--<group if="$(arg use_trajectory_planning)" >-->
+        <!--&lt;!&ndash;Spin up the nodes that communicate to the actual robot&ndash;&gt;-->
+        <!--<include file="$(find gdl_launch)/launch/hardware.launch">-->
+            <!--<arg name="use_robot_hw" value="$(arg use_robot_hw)" />-->
+        <!--</include>-->
 
         <!--Spin up nodes related to planning -->
-        <include file="$(find gdl_launch)/launch/planners.launch">
-            <arg name="use_robot_hw" value="$(arg use_robot_hw)" />
-        </include>
-    </group>
+        <!--<include file="$(find gdl_launch)/launch/planners.launch">-->
+            <!--<arg name="use_robot_hw" value="$(arg use_robot_hw)" />-->
+        <!--</include>-->
+    <!--</group>-->
 
     <!--Spin up the nodes related to vision or mock vision-->
-    <include file="$(find gdl_launch)/launch/vision.launch" >
-        <arg name="use_vision_hw" value="$(arg use_vision_hw)" />
-    </include>
+    <!--<include file="$(find gdl_launch)/launch/vision.launch" >-->
+        <!--<arg name="use_vision_hw" value="$(arg use_vision_hw)" />-->
+    <!--</include>-->
 
-    <!--Spin up the nodes related to visualization and user input-->
+    <!--Spin up the nodes related to visualization and user inCput-->
     <include file="$(find gdl_launch)/launch/ui.launch" > </include>
 
 </launch>
