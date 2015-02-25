@@ -25,6 +25,8 @@ class CloudMesher():
         self.mesh_path = os.path.expanduser('~/grasp_deep_learning/gdl/src/graspit_bci/models/captured_meshes/')
 
     def point_cloud_callback(self, data):
+        if self.pc is None:
+            print "received a pointcloud"
         if self.is_capturing:
             self.pc = data
 
@@ -102,18 +104,21 @@ class CloudMesher():
         req.input_cloud = self.pc
         req.output_filepath = self.time_dir_full_filepath
 
+
         response = self.service_proxy(req)
         model_names = response.segmented_mesh_filenames
         offsets = response.offsets
 
+        refined_model_names = []
         for model_name in model_names:
             if not "single_mesh" in model_name:
                 self.build_graspit_model_iv(model_name)
                 self.build_graspit_model_xml(model_name)
+                refined_model_names.append(model_name)
 
         self.build_world_file(model_names, offsets)
 
-        print response
+        return response.planning_scene, refined_model_names
 
     def listen(self, init_node=False):
         if init_node:

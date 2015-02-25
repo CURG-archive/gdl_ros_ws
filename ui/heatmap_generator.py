@@ -24,7 +24,7 @@ class HeatmapGenerator():
         try:
             calculate_grasps = rospy.ServiceProxy('calculate_grasps_service', CalculateGraspsService)
 
-            req = CalculateGraspsServiceRequest(image.flatten(), mask.flatten())
+            req = CalculateGraspsServiceRequest(image.flatten())
 
             response = calculate_grasps(req)
 

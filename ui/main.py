@@ -13,7 +13,7 @@ from heatmap_generator import HeatmapGenerator
 from rgbd_listener import RGBDListener
 from grasp_publisher import GraspPublisher
 
-
+from moveit_msgs.msg import PlanningScene
 if sys.version_info[0] < 3:
     import Tkinter as Tk
 else:
@@ -26,6 +26,12 @@ class GUI():
 
         #show live stream until capture button is pressed
         self._still_captured = False
+
+        self.moveit_planning_scene_msg = None
+        self.mesh_list_vars = {}
+        self.check_buttons = []
+        
+        self.refined_planning_scene_publisher = rospy.Publisher("/planning_scene", PlanningScene)
 
         #different service providers
         self.rgbd_listener = RGBDListener()
@@ -52,8 +58,7 @@ class GUI():
 
         button_capture = Tk.Button(master=self.root, text='Capture', command=self.capture_button_cb)
         button_quit = Tk.Button(master=self.root, text='Quit', command=self.quit_button_cb)
-        self.button_run_grasp_server = Tk.Button(master=self.root, text='get grasps', command=self.get_heatmaps_button_cb)
-        self.button_run_grasp_server.config(state="disabled")
+        self.button_send_meshes = Tk.Button(master=self.root, text='Send Selected Meshes', command=self.send_meshes_cb)
 
         self.world_name_text_box = Tk.Entry(master=self.root)
         self.world_name_text_box.pack()
@@ -61,7 +66,11 @@ class GUI():
 
         button_quit.pack(side=Tk.LEFT)
         button_capture.pack()
-        self.button_run_grasp_server.pack()
+        self.button_send_meshes.pack()
+
+        # List of 'models'
+        self.meshListFrame = Tk.Frame(self.root)
+        self.meshListFrame.pack(side=Tk.RIGHT)
 
         self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
@@ -75,18 +84,43 @@ class GUI():
         self.root.quit()
         self.root.destroy()
 
+    def send_meshes_cb(self, *args):
+        planning_scene_msg = PlanningScene()
+        planning_scene_msg.is_diff = self.moveit_planning_scene_msg.is_diff
+        planning_scene_msg.allowed_collision_matrix = self.moveit_planning_scene_msg.allowed_collision_matrix
+        planning_scene_msg.name = self.moveit_planning_scene_msg.name
+
+        for collision_object in self.moveit_planning_scene_msg.world.collision_objects:
+            mesh_id = collision_object.id
+            if self.mesh_list_vars[mesh_id].get() == '1':
+                planning_scene_msg.world.collision_objects.append(collision_object)
+
+        self.refined_planning_scene_publisher.publish(planning_scene_msg)
+
     def capture_button_cb(self, *args):
 
         self._still_captured = True
         self.cloud_mesher.is_capturing = False
 
         world_name = self.world_name_text_box.get()
-        self.cloud_mesher.run_service(world_name)
+        self.moveit_planning_scene_msg, mesh_names = self.cloud_mesher.run_service(world_name)
 
-        self.button_run_grasp_server.config(state="active")
+        self.mesh_list_vars = dict([mesh_name, Tk.Variable()] for mesh_name in mesh_names)
 
-    def get_heatmaps_button_cb(self, *args):
+        #remove old check buttons
+        for check_button in self.check_buttons:
+            check_button.pack_forget()
+            check_button.destroy()
+
+        #add new check buttons
+        for meshName in self.mesh_list_vars:
+            check_button = Tk.Checkbutton(self.meshListFrame, text=meshName, variable=self.mesh_list_vars[meshName])
+            check_button.pack()
+            self.check_buttons.append(check_button)
+
         self.heatmap_generator.get_heatmaps(self.image, self.cloud_mesher.time_dir_full_filepath)
+
+        self.button_send_meshes.config(state="active")
 
     def update_image(self):
         self.set_capture_image(self.rgbd_listener.rgbd_image,

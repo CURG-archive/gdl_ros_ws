@@ -20,12 +20,17 @@
 #include <pcl/common/centroid.h>
 #include "geometry_msgs/Vector3.h"
 
+#include "moveit_msgs/PlanningSceneWorld.h"
+#include "moveit_msgs/PlanningScene.h"
+#include "shape_msgs/Mesh.h"
+#include "geometric_shapes/shapes.h"
+#include "geometric_shapes/mesh_operations.h"
 
 
 //#include <pcl/kdtree/kdtree_flann.h>
 //#include <pcl/features/normal_3d.h>
 #include <pcl/surface/gp3.h>
-
+#include <sys/time.h>
 
 namespace mesh_builder_node
 {
@@ -35,6 +40,7 @@ namespace mesh_builder_node
             ros::NodeHandle node_handle;
             bool extract_clusters;
 
+            //ros::Publisher planning_scene_diff_publisher;
             ros::ServiceServer service;
 
             bool serviceCallback( mesh_builder::MeshCloud::Request &req,
@@ -46,10 +52,11 @@ namespace mesh_builder_node
 
 
     MeshBuilderNode::MeshBuilderNode():
-        node_handle(""),
+        node_handle("mesh_builder_node"),
         extract_clusters(true)
     {
 
+        //planning_scene_diff_publisher = node_handle.advertise<moveit_msgs::PlanningScene>("/planning_scene", 1);
         service = node_handle.advertiseService("/meshCloud", &MeshBuilderNode::serviceCallback, this);
 
         ROS_INFO("mesh_builder_node ready");
@@ -60,6 +67,12 @@ namespace mesh_builder_node
                                            mesh_builder::MeshCloud::Response &res )
     {
         ROS_INFO("recieved message");
+
+        struct timeval startTime;
+        gettimeofday(&startTime, NULL);
+        long int startTimeMS = startTime.tv_sec * 1000 + startTime.tv_usec / 1000;
+:
+
 
         pcl::PCLPointCloud2::Ptr pcl_pc (new pcl::PCLPointCloud2());
         pcl_conversions::toPCL(req.input_cloud, *pcl_pc);
@@ -83,7 +96,6 @@ namespace mesh_builder_node
         orgMesh.setTriangulationType(pcl::OrganizedFastMesh<pcl::PointXYZRGB>::TRIANGLE_ADAPTIVE_CUT  );
         orgMesh.setInputCloud(cloud);
         orgMesh.reconstruct(triangles);
-
 
 
         if(extract_clusters)
@@ -190,11 +202,61 @@ namespace mesh_builder_node
 
                     res.offsets.push_back(*offset);
 
+
+                    moveit_msgs::CollisionObject partial_mesh_model;
+                    partial_mesh_model.header.frame_id = "camera_depth_optical_frame";
+                    partial_mesh_model.id = model_name.str();
+                    geometry_msgs::Pose pose;
+                    pose.orientation.w = 1.0;
+                    pose.position.x = centroid.x()/ 1000.0;
+                    pose.position.y = centroid.y()/ 1000.0;
+                    pose.position.z = centroid.z()/ 1000.0;
+
+                    shape_msgs::Mesh mesh;
+                    //shapes::Mesh* m = shapes::createMeshFromResource(req.output_filepath + model_name.str() + ".stl");
+                    for (int triangle_index = 0; triangle_index < triangles.polygons.size(); triangle_index++)
+                    {
+                        pcl::Vertices p = triangles.polygons.at(triangle_index);
+
+                        shape_msgs::MeshTriangle shape_msg_triangle;
+                        shape_msg_triangle.vertex_indices[0] = p.vertices.at(0);
+                        shape_msg_triangle.vertex_indices[1] = p.vertices.at(1);
+                        shape_msg_triangle.vertex_indices[2] = p.vertices.at(2);
+
+                        mesh.triangles.push_back(shape_msg_triangle);
+                    }
+
+
+                    for (p = centered_cloud_with_normals->points.begin(); p < centered_cloud_with_normals->points.end(); p++)
+                    {
+                        geometry_msgs::Point msg_p;
+                        msg_p.x = p->x / 1000.0;
+                        msg_p.y = p->y / 1000.0;
+                        msg_p.z = p->z / 1000.0;
+
+                        mesh.vertices.push_back(msg_p);
+                    }
+                    //mesh.triangles =  m->triangles;
+                    //mesh.vertices = m->vertices;
+
+                    partial_mesh_model.meshes.push_back(mesh);
+                    partial_mesh_model.mesh_poses.push_back(pose);
+                    partial_mesh_model.operation = partial_mesh_model.ADD;
+
+                    //planning_scene.allowed_collision_matrix.entry_names.push_back( model_name.str());
+                    res.planning_scene.allowed_collision_matrix.default_entry_names.push_back( model_name.str());
+                    res.planning_scene.allowed_collision_matrix.default_entry_values.push_back(true);
+
+
+                    res.planning_scene.world.collision_objects.push_back(partial_mesh_model);
                     mesh_index++;
                 }
 
             }
         }
+
+
+        res.planning_scene.is_diff = true;
 
         //save scene as one big mesh as well.
         pcl::io::savePolygonFileSTL(req.output_filepath + "single_mesh.stl", triangles);
@@ -207,7 +269,15 @@ namespace mesh_builder_node
         res.offsets.push_back(*offset);
         res.segmented_mesh_filenames.push_back("single_mesh");
 
+
         ROS_INFO("saved_file");
+
+
+        struct timeval endTime;
+        gettimeofday(&endTime, NULL);
+        long int endTimeMs = endTime.tv_sec * 1000 + endTime.tv_usec / 1000;
+        long int totalTime = endTimeMs - startTimeMS;
+        std::cout << "Total Time in milliseconds is " << totalTime <<  std::endl;
         return true;
     }
 
@@ -223,8 +293,6 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
 
   mesh_builder_node::MeshBuilderNode node;
-
-
 
   ros::spin();
 

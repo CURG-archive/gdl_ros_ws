@@ -92,6 +92,5 @@ void ClusterExtractor::computeClusters()
         cloud_cluster->is_dense = true;
 
         cloudClusters.push_back(cloud_cluster);
-        std::cout << "cluster_size: " << cloud_cluster->points.size () << '\n';
     }
 }

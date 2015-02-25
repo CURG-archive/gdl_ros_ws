@@ -9,7 +9,7 @@ from skimage.segmentation import slic
 class RGBDListener():
 
     def __init__(self,
-                 depth_topic="/camera/depth/image_raw",
+                 depth_topic="/camera/depth_registered/image_raw",
                  rgb_topic="/camera/rgb/image_color"):
 
         self.depth_topic = depth_topic
