@@ -106,6 +106,12 @@ namespace mesh_builder_node
             std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> cloudClusters = clusterExtractor->getCloudClusters();
             delete clusterExtractor;
 
+            struct timeval endTime;
+            gettimeofday(&endTime, NULL);
+            long int endTimeMs = endTime.tv_sec * 1000 + endTime.tv_usec / 1000;
+            long int sceneSegmentationTime = endTimeMs - startTimeMS;
+            std::cout << "Scene segmentation time: " << sceneSegmentationTime <<  std::endl;
+
 
             int mesh_index = 0;
             for(int i = 0; i < cloudClusters.size(); i++)
