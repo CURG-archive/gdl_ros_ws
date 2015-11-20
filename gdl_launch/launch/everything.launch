@@ -1,4 +1,6 @@
 <launch>
+    
+    <include file="$(find openni_launch)/launch/openni.launch"/>
 
     <node name="ui_node" pkg="ui" type="main.py"/>
 	<node name="mesh_builder_node" pkg="mesh_builder" type="mesh_builder_node"/>

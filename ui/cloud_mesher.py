@@ -22,7 +22,8 @@ class CloudMesher():
         #this is the fullpath upto and including the time_dir
         self.time_dir_full_filepath = None
 
-        self.mesh_path = os.path.expanduser('~/grasp_deep_learning/gdl/src/graspit_bci/models/captured_meshes/')
+        #self.mesh_path = os.path.expanduser('~/grasp_deep_learning/gdl/src/graspit_bci/models/captured_meshes/')
+        self.mesh_path = os.path.expanduser('~/curg/graspits/hao/graspit_hao_jared/models/captured_meshes/')
 
     def point_cloud_callback(self, data):
         if self.pc is None:
