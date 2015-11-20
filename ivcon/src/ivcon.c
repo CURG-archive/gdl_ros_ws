@@ -1837,7 +1837,7 @@ int command_line ( char **argv )
     printf ( "COMMAND_LINE - Note:\n" );
     printf ( "  Reversed the face definitions.\n" );
   }
-
+/*
 //SCALE!!!!
 printf ( "WARNING ADDED LINES around 1842 to scale meshes  search for SCALE in ivcon.c to remove lines!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.\n" );
 	float x = 1000;
@@ -1876,7 +1876,7 @@ printf ( "WARNING ADDED LINES around 1842 to scale meshes  search for SCALE in i
       cor3_normal_set ( );
 
       face_normal_ave ( );
-//End Scale!!!!!!!!!!!
+//End Scale!!!!!!!!!!!*/
 
 /*
   Write the output file. 
